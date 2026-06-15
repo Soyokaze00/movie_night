@@ -18,15 +18,15 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+# It's better to ignore the whole folder unless you have shared team settings
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
@@ -39,7 +39,32 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- ADDED FOR BETTER STANDARDS ---
+
+# 1. Sensitive Data (Crucial!)
+# Never push your API keys or secrets. 
+# Create a .env file for those and keep them out of GitHub.
+.env
+*.env
+
+# 2. Android Specifics
+# Local properties usually contain paths to YOUR specific SDKs
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+
+# 3. iOS Specifics
+.msh/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+
+# 4. Large Assets / OS files
+Thumbs.db
+desktop.ini
