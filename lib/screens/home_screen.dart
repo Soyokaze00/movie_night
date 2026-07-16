@@ -24,16 +24,32 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF02020A), 
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromARGB(0, 226, 8, 8),
         elevation: 0,
         leading: const Icon(Icons.menu, color: Colors.white),
         title: RichText(
           text: TextSpan(
             children: [
-              const TextSpan(text: 'Movie', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-              TextSpan(text: 'Night', style: TextStyle(color: theme.colorScheme.secondary, fontSize: 22, fontWeight: FontWeight.bold)),
+              const TextSpan(
+                text: 'Movie',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Times',
+                ),
+              ),
+              TextSpan(
+                text: 'Night',
+                style: TextStyle(
+                  color: theme.colorScheme.secondary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Times',
+                ),
+              ),
             ],
           ),
         ),
@@ -49,11 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
           final movies = movieProvider.trendingMovies;
           if (movies.isEmpty) return const Center(child: Text("No Movies Found"));
 
-          return SingleChildScrollView(
+          return SingleChildScrollView( //** */
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildFeaturedSection(movies[0], theme),
+                _buildFeaturedSection(movies[11], theme),
                 _buildMovieRow("Trending Now", movies),
                 _buildMovieRow("Popular Movies", movies.reversed.toList()),
                 _buildMyLists(theme),
@@ -98,17 +114,17 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(color: theme.colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
-              child: const Text("Featured", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              child: const Text("Featured", style: TextStyle(fontSize: 10, fontFamily: 'Times', fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 8),
-            Text(movie.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(movie.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
             const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () {},
               icon: const Icon(Icons.play_arrow),
-              label: const Text("Watch Trailer"),
+              label: const Text("Watch Trailer", style: TextStyle(fontSize: 15, fontFamily: 'Times', fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
+                backgroundColor: const Color.fromARGB(255, 198, 37, 142),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -119,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
   Widget _buildMovieRow(String title, List<Movie> movies) {
     return Column(
       children: [
@@ -127,8 +144,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              Text("See All >", style: TextStyle(color: Colors.blueAccent.withOpacity(0.8), fontSize: 14)),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+              Text("See All >", style: TextStyle(color: const Color.fromARGB(255, 251, 92, 224).withOpacity(0.8), fontSize: 14, fontFamily: 'Times')),
             ],
           ),
         ),
@@ -145,13 +162,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
   Widget _buildMyLists(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Padding(
           padding: EdgeInsets.all(16),
-          child: Text("My Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          child: Text("My Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Times', fontWeight: FontWeight.bold)),
         ),
         GridView.count(
           shrinkWrap: true,
@@ -172,6 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
   Widget _listTile(String label, String count, Color color, IconData icon) {
     return Container(
       decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
@@ -184,8 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              Text(count, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(label, style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 15, fontWeight: FontWeight.bold)),
+              Text(count, style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 13)),
             ],
           )
         ],
@@ -193,9 +212,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
   Widget _buildBottomNav(ThemeData theme) {
     return BottomNavigationBar(
-      backgroundColor: const Color(0xFF02020A),
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       type: BottomNavigationBarType.fixed,
       selectedItemColor: theme.colorScheme.secondary,
       unselectedItemColor: Colors.white54,
