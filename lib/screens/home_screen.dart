@@ -2,20 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
 import '../data/models/movie_model.dart';
+import '../widgets/movie_mini_card.dart';
+import '../widgets/app_drawer.dart';
+import 'list_screen.dart';
+import 'movie_detail_screen.dart';
+import 'see_all_screen.dart';
+import 'search_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeTab extends StatefulWidget {
+  const HomeTab({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeTabState extends State<HomeTab> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MovieProvider>(context, listen: false).fetchTrendingMovies();
+      final provider = Provider.of<MovieProvider>(context, listen: false);
+      provider.fetchHomeData();
+      provider.fetchAnimeData();
     });
   }
 
@@ -24,119 +32,135 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
+      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+      drawer: const AppDrawer(currentIndex: 0),
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(0, 226, 8, 8),
         elevation: 0,
-        leading: const Icon(Icons.menu, color: Colors.white),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: RichText(
           text: TextSpan(
             children: [
-              const TextSpan(
-                text: 'Movie',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Times',
-                ),
-              ),
-              TextSpan(
-                text: 'Night',
-                style: TextStyle(
-                  color: theme.colorScheme.secondary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Times',
-                ),
-              ),
+              const TextSpan(text: 'Movie', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
+              TextSpan(text: 'Night', style: TextStyle(color: theme.colorScheme.secondary, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
             ],
           ),
         ),
         centerTitle: true,
-        actions: const [Icon(Icons.search, color: Colors.white), SizedBox(width: 15)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Consumer<MovieProvider>(
         builder: (context, movieProvider, child) {
           if (movieProvider.isLoading) {
             return Center(child: CircularProgressIndicator(color: theme.colorScheme.secondary));
           }
+          if (movieProvider.errorMessage != null) {
+            return Center(child: Text(movieProvider.errorMessage!, style: const TextStyle(color: Colors.white70)));
+          }
 
-          final movies = movieProvider.trendingMovies;
-          if (movies.isEmpty) return const Center(child: Text("No Movies Found"));
+          final trending = movieProvider.trendingMovies;
+          if (trending.isEmpty) return const Center(child: Text("No Movies Found", style: TextStyle(color: Colors.white)));
 
-          return SingleChildScrollView( //** */
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildFeaturedSection(movies[11], theme),
-                _buildMovieRow("Trending Now", movies),
-                _buildMovieRow("Popular Movies", movies.reversed.toList()),
-                _buildMyLists(theme),
-                
-                const SizedBox(height: 30),
-              ],
+          return RefreshIndicator(
+            onRefresh: () async {
+              await movieProvider.fetchHomeData();
+              await movieProvider.fetchAnimeData();
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFeaturedSection(trending[0], theme),
+                  _buildMovieRow("Trending Now", trending),
+                  _buildMovieRow("Popular Movies", movieProvider.popularMovies),
+                  if (movieProvider.isAnimeLoading && movieProvider.airingAnime.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+                    )
+                  else ...[
+                    _buildMovieRow("Airing Anime", movieProvider.airingAnime),
+                    _buildMovieRow("All Time Popular Anime", movieProvider.popularAnime),
+                  ],
+                  _buildMyLists(theme, movieProvider),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           );
         },
       ),
-      bottomNavigationBar: _buildBottomNav(theme),
     );
   }
 
   Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
     const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
-    return Container(
-      margin: const EdgeInsets.all(16),
-      height: 250,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: DecorationImage(
-          image: NetworkImage('$imageBaseUrl${movie.posterPath}'),
-          fit: BoxFit.cover,
-        ),
-      ),
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
       child: Container(
+        margin: const EdgeInsets.all(16),
+        height: 250,
+        width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Colors.black.withOpacity(0.9), Colors.transparent],
-          ),
+          color: Colors.white10,
+          image: movie.posterPath.isEmpty
+              ? null
+              : DecorationImage(image: NetworkImage('$imageBaseUrl${movie.posterPath}'), fit: BoxFit.cover, onError: (_, __) {}),
         ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: theme.colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
-              child: const Text("Featured", style: TextStyle(fontSize: 10, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [Colors.black.withOpacity(0.9), Colors.transparent],
             ),
-            const SizedBox(height: 8),
-            Text(movie.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.play_arrow),
-              label: const Text("Watch Trailer", style: TextStyle(fontSize: 15, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 198, 37, 142),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: theme.colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
+                child: const Text("Featured", style: TextStyle(fontSize: 10, fontFamily: 'Times', fontWeight: FontWeight.bold)),
               ),
-            )
-          ],
+              const SizedBox(height: 8),
+              Text(movie.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
+              const SizedBox(height: 10),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
+                icon: const Icon(Icons.play_arrow),
+                label: const Text("Watch Trailer", style: TextStyle(fontSize: 15, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 198, 37, 142),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
   }
 
-
   Widget _buildMovieRow(String title, List<Movie> movies) {
+    if (movies.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
         Padding(
@@ -145,7 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-              Text("See All >", style: TextStyle(color: const Color.fromARGB(255, 251, 92, 224).withOpacity(0.8), fontSize: 14, fontFamily: 'Times')),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllScreen(title: title, movies: movies))),
+                child: Text("See All >", style: TextStyle(color: const Color.fromARGB(255, 251, 92, 224).withOpacity(0.8), fontSize: 14, fontFamily: 'Times')),
+              ),
             ],
           ),
         ),
@@ -162,8 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-  Widget _buildMyLists(ThemeData theme) {
+  Widget _buildMyLists(ThemeData theme, MovieProvider provider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -180,70 +206,38 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           children: [
-            _listTile("Watching", "12", Colors.purple, Icons.play_circle_fill),
-            _listTile("On Hold", "7", Colors.orange, Icons.pause_circle_filled),
-            _listTile("Plan to Watch", "24", Colors.blue, Icons.bookmark),
-            _listTile("Dropped", "5", Colors.red, Icons.cancel),
+            _listTile("Favorites", provider.favoriteMovies.length, Colors.pinkAccent, Icons.favorite, MovieListType.favorites),
+            _listTile("Watching", provider.watchingMovies.length, Colors.purple, Icons.play_circle_fill, MovieListType.watching),
+            _listTile("On Hold", provider.onHoldMovies.length, Colors.orange, Icons.pause_circle_filled, MovieListType.onHold),
+            _listTile("Completed", provider.completedMovies.length, Colors.teal, Icons.check_circle, MovieListType.completed),
+            _listTile("Plan to Watch", provider.planToWatchMovies.length, Colors.blue, Icons.bookmark, MovieListType.planToWatch),
+            _listTile("Dropped", provider.droppedMovies.length, Colors.red, Icons.cancel, MovieListType.dropped),
           ],
         ),
       ],
     );
   }
 
-
-  Widget _listTile(String label, String count, Color color, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          const SizedBox(width: 10),
-          Icon(icon, color: color),
-          const SizedBox(width: 10),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 15, fontWeight: FontWeight.bold)),
-              Text(count, style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 13)),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildBottomNav(ThemeData theme) {
-    return BottomNavigationBar(
-      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: theme.colorScheme.secondary,
-      unselectedItemColor: Colors.white54,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.movie), label: "Movies"),
-        BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Discover"),
-        BottomNavigationBarItem(icon: Icon(Icons.list), label: "Lists"),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-      ],
-    );
-  }
-}
-
-class MovieMiniCard extends StatelessWidget {
-  final Movie movie;
-  const MovieMiniCard({super.key, required this.movie});
-
-  @override
-  Widget build(BuildContext context) {
-    const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
-    return Container(
-      width: 130,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network('$imageBaseUrl${movie.posterPath}', fit: BoxFit.cover),
+  Widget _listTile(String label, int count, Color color, IconData icon, MovieListType type) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieListScreen(type: type))),
+      child: Container(
+        decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const SizedBox(width: 10),
+            Icon(icon, color: color),
+            const SizedBox(width: 10),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 15, fontWeight: FontWeight.bold)),
+                Text('$count', style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 13)),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
