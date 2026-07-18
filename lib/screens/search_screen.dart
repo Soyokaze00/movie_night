@@ -46,7 +46,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onChanged: _onChanged,
           style: const TextStyle(color: Colors.white, fontFamily: 'Times'),
           decoration: InputDecoration(
-            hintText: 'Search movies...',
+            hintText: 'Search movies & anime...',
             hintStyle: const TextStyle(color: Colors.white38, fontFamily: 'Times'),
             border: InputBorder.none,
             suffixIcon: _controller.text.isNotEmpty

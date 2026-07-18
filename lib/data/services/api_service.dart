@@ -74,23 +74,27 @@ class ApiService {
     }
   }
 
+  // /search/multi returns movies, tv shows, AND people all mixed together,
+  // each tagged with its own media_type - we keep movie/tv and drop people
+  // so anime (tv) titles are actually findable, not just movies.
   Future<List<Movie>> searchMovies(String query) async {
-    final url = _buildUrl('search/movie', extraParams: 'query=${Uri.encodeQueryComponent(query)}');
+    final url = _buildUrl('search/multi', extraParams: 'query=${Uri.encodeQueryComponent(query)}');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data['results'] != null) {
-          return (data['results'] as List).map((json) => Movie.fromJson(json)).toList();
-        }
-        return [];
+        final results = (data['results'] as List?) ?? [];
+        return results
+            .where((json) => json['media_type'] == 'movie' || json['media_type'] == 'tv')
+            .map((json) => Movie.fromJson(json, mediaType: json['media_type'] as String))
+            .toList();
       } else {
-        debugPrint("Server Error searching movies: ${response.statusCode}");
-        throw Exception('Failed to search movies: ${response.statusCode}');
+        debugPrint("Server Error searching: ${response.statusCode}");
+        throw Exception('Failed to search: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint("Connection Error searching movies: $e");
-      throw Exception('Error searching movies: $e');
+      debugPrint("Connection Error searching: $e");
+      throw Exception('Error searching: $e');
     }
   }
 
