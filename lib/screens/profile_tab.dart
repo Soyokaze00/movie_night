@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
 import '../widgets/app_drawer.dart';
+import 'profile_setup_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -11,7 +12,7 @@ class ProfileTab extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      drawer: const AppDrawer(currentIndex: 4),
+      drawer: const AppDrawer(currentIndex: 2),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -29,9 +30,22 @@ class ProfileTab extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(radius: 32, backgroundColor: theme.colorScheme.secondary.withOpacity(0.3), child: const Icon(Icons.person, color: Colors.white, size: 32)),
+                    CircleAvatar(
+                      radius: 32,
+                      backgroundColor: theme.colorScheme.secondary.withOpacity(0.3),
+                      child: provider.profileAvatar != null
+                          ? Text(provider.profileAvatar!, style: const TextStyle(fontSize: 28))
+                          : const Icon(Icons.person, color: Colors.white, size: 32),
+                    ),
                     const SizedBox(width: 16),
-                    const Text("Movie Fan", style: TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 20, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: Text(provider.profileName ?? "Movie Fan",
+                          style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 20, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.white54),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen())),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
