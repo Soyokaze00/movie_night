@@ -1,17 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/movie_provider.dart';
+import '../data/models/movie_model.dart';
 import '../widgets/app_drawer.dart';
-import 'list_screen.dart';
+import '../widgets/library_movie_tile.dart';
 
-class ListsTab extends StatelessWidget {
+class ListsTab extends StatefulWidget {
   const ListsTab({super.key});
 
   @override
+  State<ListsTab> createState() => _ListsTabState();
+}
+
+class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  static const List<_TabInfo> _tabs = [
+    _TabInfo("Favorites", Icons.favorite, Colors.pinkAccent),
+    _TabInfo("Watching", Icons.play_circle_fill, Colors.purpleAccent),
+    _TabInfo("On Hold", Icons.pause_circle_filled, Colors.orange),
+    _TabInfo("Completed", Icons.check_circle, Colors.teal),
+    _TabInfo("Plan to Watch", Icons.bookmark, Colors.blueAccent),
+    _TabInfo("Dropped", Icons.cancel, Colors.redAccent),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<Movie> _moviesFor(int index, MovieProvider provider) {
+    switch (index) {
+      case 0: return provider.favoriteMovies;
+      case 1: return provider.watchingMovies;
+      case 2: return provider.onHoldMovies;
+      case 3: return provider.completedMovies;
+      case 4: return provider.planToWatchMovies;
+      case 5: return provider.droppedMovies;
+    }
+    return const [];
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      drawer: const AppDrawer(currentIndex: 3),
+      drawer: const AppDrawer(currentIndex: 1),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
@@ -19,41 +61,54 @@ class ListsTab extends StatelessWidget {
           builder: (context) => IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()),
         ),
         title: const Text("My Lists", style: TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: theme.colorScheme.secondary,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white54,
+          labelStyle: const TextStyle(fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 13),
+          tabs: _tabs
+              .map((t) => Tab(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(t.icon, size: 16, color: t.color),
+                        const SizedBox(width: 6),
+                        Text(t.label),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
       ),
       body: Consumer<MovieProvider>(
         builder: (context, provider, child) {
-          final items = [
-            _ListInfo("Favorites", provider.favoriteMovies.length, Colors.pinkAccent, Icons.favorite, MovieListType.favorites),
-            _ListInfo("Watching", provider.watchingMovies.length, Colors.purpleAccent, Icons.play_circle_fill, MovieListType.watching),
-            _ListInfo("On Hold", provider.onHoldMovies.length, Colors.orange, Icons.pause_circle_filled, MovieListType.onHold),
-            _ListInfo("Completed", provider.completedMovies.length, Colors.teal, Icons.check_circle, MovieListType.completed),
-            _ListInfo("Plan to Watch", provider.planToWatchMovies.length, Colors.blueAccent, Icons.bookmark, MovieListType.planToWatch),
-            _ListInfo("Dropped", provider.droppedMovies.length, Colors.redAccent, Icons.cancel, MovieListType.dropped),
-          ];
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final info = items[index];
-              return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieListScreen(type: info.type))),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: info.color.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
-                  child: Row(
+          return TabBarView(
+            controller: _tabController,
+            children: List.generate(_tabs.length, (index) {
+              final movies = _moviesFor(index, provider);
+              final info = _tabs[index];
+              if (movies.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(info.icon, color: info.color, size: 28),
-                      const SizedBox(width: 14),
-                      Expanded(child: Text(info.label, style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 16, fontWeight: FontWeight.bold))),
-                      Text('${info.count}', style: TextStyle(color: info.color, fontFamily: 'Times', fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.chevron_right, color: Colors.white24),
+                      Icon(info.icon, color: Colors.white24, size: 48),
+                      const SizedBox(height: 12),
+                      const Text("Nothing added yet", style: TextStyle(color: Colors.white38, fontFamily: 'Times')),
                     ],
                   ),
-                ),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: movies.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, i) =>
+                    LibraryMovieTile(movie: movies[i], color: info.color, showProgress: info.label == "Watching"),
               );
-            },
+            }),
           );
         },
       ),
@@ -61,11 +116,9 @@ class ListsTab extends StatelessWidget {
   }
 }
 
-class _ListInfo {
+class _TabInfo {
   final String label;
-  final int count;
-  final Color color;
   final IconData icon;
-  final MovieListType type;
-  _ListInfo(this.label, this.count, this.color, this.icon, this.type);
+  final Color color;
+  const _TabInfo(this.label, this.icon, this.color);
 }

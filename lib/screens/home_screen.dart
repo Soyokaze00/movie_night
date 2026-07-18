@@ -23,7 +23,7 @@ class _HomeTabState extends State<HomeTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<MovieProvider>(context, listen: false);
       provider.fetchHomeData();
-      provider.fetchAnimeData();
+      // provider.fetchAnimeData();
     });
   }
 
@@ -75,7 +75,7 @@ class _HomeTabState extends State<HomeTab> {
           return RefreshIndicator(
             onRefresh: () async {
               await movieProvider.fetchHomeData();
-              await movieProvider.fetchAnimeData();
+              // await movieProvider.fetchAnimeData();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -85,15 +85,15 @@ class _HomeTabState extends State<HomeTab> {
                   _buildFeaturedSection(trending[0], theme),
                   _buildMovieRow("Trending Now", trending),
                   _buildMovieRow("Popular Movies", movieProvider.popularMovies),
-                  if (movieProvider.isAnimeLoading && movieProvider.airingAnime.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator(color: Colors.white54)),
-                    )
-                  else ...[
-                    _buildMovieRow("Airing Anime", movieProvider.airingAnime),
-                    _buildMovieRow("All Time Popular Anime", movieProvider.popularAnime),
-                  ],
+                  // if (movieProvider.isAnimeLoading && movieProvider.airingAnime.isEmpty)
+                  //   const Padding(
+                  //     padding: EdgeInsets.symmetric(vertical: 20),
+                  //     child: Center(child: CircularProgressIndicator(color: Colors.white54)),
+                  //   )
+                  // else ...[
+                  //   _buildMovieRow("Airing Anime", movieProvider.airingAnime),
+                  //   _buildMovieRow("All Time Popular Anime", movieProvider.popularAnime),
+                  // ],
                   _buildMyLists(theme, movieProvider),
                   const SizedBox(height: 30),
                 ],
@@ -105,7 +105,7 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
+Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
     const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
@@ -134,30 +134,22 @@ class _HomeTabState extends State<HomeTab> {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: theme.colorScheme.secondary, borderRadius: BorderRadius.circular(8)),
-                child: const Text("Featured", style: TextStyle(fontSize: 10, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(height: 8),
               Text(movie.title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Times')),
-              const SizedBox(height: 10),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text("Watch Trailer", style: TextStyle(fontSize: 15, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 198, 37, 142),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              const SizedBox(height: 8),
+              if (movie.overview.isNotEmpty)
+                Text(
+                  movie.overview,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'Times', height: 1.3),
                 ),
-              )
             ],
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildMovieRow(String title, List<Movie> movies) {
     if (movies.isEmpty) return const SizedBox.shrink();

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
-import 'movies_tab.dart';
-import 'discover_tab.dart';
 import 'lists_tab.dart';
 import 'profile_tab.dart';
 
@@ -18,8 +16,6 @@ class _MainShellState extends State<MainShell> {
 
   final List<Widget> _tabs = const [
     HomeTab(),
-    MoviesTab(),
-    DiscoverTab(),
     ListsTab(),
     ProfileTab(),
   ];
@@ -45,9 +41,7 @@ class _MainShellState extends State<MainShell> {
         unselectedItemColor: Colors.white54,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.movie), label: "Movies"),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Discover"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "Lists"),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: "My Lists"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
