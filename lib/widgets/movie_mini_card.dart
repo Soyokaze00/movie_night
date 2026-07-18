@@ -18,28 +18,30 @@ class MovieMiniCard extends StatelessWidget {
         width: 130,
         margin: const EdgeInsets.only(right: 12),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: movie.posterPath.isEmpty
-                  ? Container(height: 170, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
+                  ? Container(height: 150, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
                   : Image.network(
                       '$imageBaseUrl${movie.posterPath}',
-                      height: 170,
+                      height: 150,
                       width: 130,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          Container(height: 170, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                          Container(height: 150, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
                       loadingBuilder: (context, child, progress) =>
-                          progress == null ? child : Container(height: 170, width: 130, color: Colors.white10),
+                          progress == null ? child : Container(height: 150, width: 130, color: Colors.white10),
                     ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(movie.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
             Row(children: [
               const Icon(Icons.star, color: Colors.amber, size: 12),
               const SizedBox(width: 2),
