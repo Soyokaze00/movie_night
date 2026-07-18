@@ -1,14 +1,18 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/movie_model.dart';
 import '../data/services/api_service.dart';
+import '../data/services/db_service.dart';
 
 class MovieProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final DbService _db = DbService.instance;
 
   // registry با کلید "mediaType-id" تا فیلم و سریالی که id یکسان دارن قاطی نشن
   final Map<String, Movie> _registry = {};
+
+  // raw saved rows keyed the same way, so movies not yet fetched from TMDB
+  // this session can still be shown as "has library data" once fetched
+  Map<String, Map<String, Object?>> _savedEntries = {};
 
   List<Movie> _trendingMovies = [];
   List<Movie> _popularMovies = [];
@@ -28,8 +32,11 @@ class MovieProvider with ChangeNotifier {
   bool _isSearching = false;
   String? _searchError;
 
-  Set<String> _savedFavoriteKeys = {};
-  Map<String, String> _savedStatusMap = {};
+  bool _isLibraryReady = false;
+
+  String? _profileName;
+  String? _profileAvatar;
+  bool _isProfileReady = false;
 
   List<Movie> get trendingMovies => _trendingMovies;
   List<Movie> get popularMovies => _popularMovies;
@@ -42,6 +49,12 @@ class MovieProvider with ChangeNotifier {
   String? get animeError => _animeError;
   bool get isDetailLoading => _isDetailLoading;
   String? get detailError => _detailError;
+  bool get isLibraryReady => _isLibraryReady;
+
+  String? get profileName => _profileName;
+  String? get profileAvatar => _profileAvatar;
+  bool get isProfileReady => _isProfileReady;
+  bool get hasProfile => _profileName != null;
 
   List<Movie> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
@@ -58,6 +71,7 @@ class MovieProvider with ChangeNotifier {
 
   MovieProvider() {
     _loadUserData();
+    _loadProfile();
   }
 
   String _key(int id, String mediaType) => '$mediaType-$id';
@@ -66,8 +80,8 @@ class MovieProvider with ChangeNotifier {
     final key = _key(movie.id, movie.mediaType);
     final existing = _registry[key];
     if (existing != null) return existing;
-    if (_savedFavoriteKeys.contains(key)) movie.isFavorite = true;
-    if (_savedStatusMap.containsKey(key)) movie.status = _savedStatusMap[key]!;
+    final saved = _savedEntries[key];
+    if (saved != null) movie.applyEntryMap(saved);
     _registry[key] = movie;
     return movie;
   }
@@ -161,42 +175,189 @@ class MovieProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------- library actions (all persisted to sqlite) ----------
+
   void toggleFavorite(int id, {String mediaType = 'movie'}) {
     final movie = _registry[_key(id, mediaType)];
     if (movie == null) return;
     movie.isFavorite = !movie.isFavorite;
-    _saveUserData();
-    notifyListeners();
+    _saveEntry(movie);
   }
 
   void setStatus(int id, String status, {String mediaType = 'movie'}) {
     final movie = _registry[_key(id, mediaType)];
     if (movie == null) return;
+    final wasStatus = movie.status;
     movie.status = movie.status == status ? 'none' : status;
-    _saveUserData();
-    notifyListeners();
+
+    // convenience: track dates automatically as status changes
+    final now = DateTime.now().toIso8601String();
+    if (movie.status == 'watching' && movie.startDate == null) {
+      movie.startDate = now;
+    }
+    if (movie.status == 'completed') {
+      movie.finishDate = now;
+      if (movie.mediaType == 'tv' && movie.totalEpisodes != null) {
+        movie.episodesWatched = movie.totalEpisodes!;
+      }
+      if (wasStatus == 'completed') {
+        // toggling completed off->on again counts as a rewatch
+        movie.rewatchCount += 1;
+      }
+    }
+    _saveEntry(movie);
+  }
+
+  /// score: 0-10 (0.5 steps), or null to clear the rating
+  void setScore(int id, double? score, {String mediaType = 'movie'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    movie.userScore = score;
+    _saveEntry(movie);
+  }
+
+  /// Sets episode progress directly. Clamped to totalEpisodes if known.
+  /// Auto-flips status to 'watching' if it was 'none' or 'planToWatch',
+  /// and to 'completed' once the last episode is watched.
+  void setEpisodeProgress(int id, int episodesWatched, {String mediaType = 'tv'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    final total = movie.totalEpisodes;
+    var value = episodesWatched < 0 ? 0 : episodesWatched;
+    if (total != null && value > total) value = total;
+    movie.episodesWatched = value;
+
+    if (movie.status == 'none' || movie.status == 'planToWatch') {
+      movie.status = 'watching';
+      movie.startDate ??= DateTime.now().toIso8601String();
+    }
+    if (total != null && value >= total && total > 0) {
+      movie.status = 'completed';
+      movie.finishDate ??= DateTime.now().toIso8601String();
+    }
+    _saveEntry(movie);
+  }
+
+  void incrementEpisode(int id, {String mediaType = 'tv'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    setEpisodeProgress(id, movie.episodesWatched + 1, mediaType: mediaType);
+  }
+
+  void decrementEpisode(int id, {String mediaType = 'tv'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    setEpisodeProgress(id, movie.episodesWatched - 1, mediaType: mediaType);
+  }
+
+  void setNotes(int id, String notes, {String mediaType = 'movie'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    movie.notes = notes;
+    _saveEntry(movie);
+  }
+
+  void incrementRewatch(int id, {String mediaType = 'movie'}) {
+    final movie = _registry[_key(id, mediaType)];
+    if (movie == null) return;
+    movie.rewatchCount += 1;
+    _saveEntry(movie);
+  }
+
+  Future<void> _saveEntry(Movie movie) async {
+    notifyListeners(); // update UI immediately, don't wait on disk I/O
+    final key = _key(movie.id, movie.mediaType);
+    if (!movie.hasLibraryData) {
+      _savedEntries.remove(key);
+      await _db.deleteEntry(movie.id, movie.mediaType);
+      return;
+    }
+    final row = movie.toEntryMap();
+    _savedEntries[key] = row;
+    await _db.upsertEntry(row);
   }
 
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final favJson = prefs.getString('favorite_keys');
-    final statusJson = prefs.getString('status_map_v2');
-    if (favJson != null) {
-      _savedFavoriteKeys = (jsonDecode(favJson) as List).map((e) => e.toString()).toSet();
-    }
-    if (statusJson != null) {
-      final map = jsonDecode(statusJson) as Map<String, dynamic>;
-      _savedStatusMap = map.map((k, v) => MapEntry(k, v.toString()));
+    try {
+      final rows = await _db.getAllEntries();
+      _savedEntries = {
+        for (final row in rows) '${row['media_type']}-${row['media_id']}': row,
+      };
+    } catch (e) {
+      debugPrint('Failed to load library data: $e');
+    } finally {
+      _isLibraryReady = true;
+      notifyListeners();
     }
   }
 
-  Future<void> _saveUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-    _savedFavoriteKeys = _registry.values.where((m) => m.isFavorite).map((m) => _key(m.id, m.mediaType)).toSet();
-    _savedStatusMap = {
-      for (final m in _registry.values.where((m) => m.status != 'none')) _key(m.id, m.mediaType): m.status,
-    };
-    await prefs.setString('favorite_keys', jsonEncode(_savedFavoriteKeys.toList()));
-    await prefs.setString('status_map_v2', jsonEncode(_savedStatusMap));
+  // ---------- local profile (name + avatar, no auth/server) ----------
+
+  Future<void> _loadProfile() async {
+    try {
+      final row = await _db.getProfile();
+      _profileName = row?['name'] as String?;
+      _profileAvatar = row?['avatar'] as String?;
+    } catch (e) {
+      debugPrint('Failed to load profile: $e');
+    } finally {
+      _isProfileReady = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveProfile(String name, String avatar) async {
+    await _db.saveProfile(name, avatar);
+    _profileName = name;
+    _profileAvatar = avatar;
+    notifyListeners();
+  }
+
+  // ---------- custom lists ----------
+
+  Future<List<Map<String, Object?>>> getCustomLists() => _db.getLists();
+
+  Future<int> createCustomList(String name) async {
+    final id = await _db.createList(name);
+    notifyListeners();
+    return id;
+  }
+
+  Future<void> deleteCustomList(int listId) async {
+    await _db.deleteList(listId);
+    notifyListeners();
+  }
+
+  Future<void> addToCustomList(int listId, int mediaId, String mediaType) async {
+    await _db.addItemToList(listId, mediaId, mediaType);
+    notifyListeners();
+  }
+
+  Future<void> removeFromCustomList(int listId, int mediaId, String mediaType) async {
+    await _db.removeItemFromList(listId, mediaId, mediaType);
+    notifyListeners();
+  }
+
+  /// Resolves a custom list's saved (mediaId, mediaType) rows into Movie
+  /// objects -- pulls from the in-memory registry if already fetched this
+  /// session, otherwise fetches fresh from TMDB.
+  Future<List<Movie>> getCustomListMovies(int listId) async {
+    final items = await _db.getItemsForList(listId);
+    final movies = <Movie>[];
+    for (final item in items) {
+      final id = item['media_id'] as int;
+      final mediaType = item['media_type'] as String;
+      final cached = getCachedMovie(id, mediaType: mediaType);
+      if (cached != null) {
+        movies.add(cached);
+        continue;
+      }
+      try {
+        movies.add(await fetchMovieDetail(id, mediaType: mediaType));
+      } catch (_) {
+        // skip titles that fail to fetch (e.g. offline)
+      }
+    }
+    return movies;
   }
 }

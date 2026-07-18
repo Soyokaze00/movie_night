@@ -14,7 +14,15 @@ class Movie {
 
   bool isFavorite;
   String status; // 'none' | 'watching' | 'onHold' | 'completed' | 'dropped' | 'planToWatch'
-  double watchProgress;
+
+  // --- user library fields (persisted in the local DB, not from TMDB) ---
+  double? userScore; // 0-10, null = not rated
+  int episodesWatched;
+  int? totalEpisodes; // filled from TMDB detail for tv/anime, null for movies
+  int rewatchCount;
+  String? startDate; // ISO8601
+  String? finishDate; // ISO8601
+  String? notes;
 
   Movie({
     required this.id,
@@ -31,8 +39,22 @@ class Movie {
     this.mediaType = 'movie',
     this.isFavorite = false,
     this.status = 'none',
-    this.watchProgress = 0.0,
+    this.userScore,
+    this.episodesWatched = 0,
+    this.totalEpisodes,
+    this.rewatchCount = 0,
+    this.startDate,
+    this.finishDate,
+    this.notes,
   });
+
+  /// 0.0-1.0 progress bar value. For movies it's just watched/not-watched;
+  /// for tv/anime it's episodesWatched / totalEpisodes.
+  double get watchProgress {
+    if (mediaType != 'tv') return status == 'completed' ? 1.0 : 0.0;
+    if (totalEpisodes == null || totalEpisodes == 0) return 0.0;
+    return (episodesWatched / totalEpisodes!).clamp(0.0, 1.0);
+  }
 
   String get year => releaseDate.isNotEmpty ? releaseDate.split('-').first : '—';
 
@@ -71,6 +93,10 @@ class Movie {
       runtime = (json['episode_run_time'] as List).first as int;
     }
 
+    if (json['number_of_episodes'] != null) {
+      totalEpisodes = json['number_of_episodes'];
+    }
+
     if (json['genres'] != null) {
       genres = (json['genres'] as List).map((g) => g['name'].toString()).toList();
     }
@@ -88,4 +114,38 @@ class Movie {
       }
     }
   }
+
+  Map<String, Object?> toEntryMap() {
+    return {
+      'media_id': id,
+      'media_type': mediaType,
+      'status': status,
+      'is_favorite': isFavorite ? 1 : 0,
+      'score': userScore,
+      'episodes_watched': episodesWatched,
+      'total_episodes': totalEpisodes,
+      'rewatch_count': rewatchCount,
+      'start_date': startDate,
+      'finish_date': finishDate,
+      'notes': notes,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  /// Applies a saved DB row onto a freshly-fetched Movie (which only has
+  /// TMDB data at this point).
+  void applyEntryMap(Map<String, Object?> row) {
+    status = row['status'] as String? ?? 'none';
+    isFavorite = (row['is_favorite'] as int? ?? 0) == 1;
+    userScore = (row['score'] as num?)?.toDouble();
+    episodesWatched = row['episodes_watched'] as int? ?? 0;
+    totalEpisodes = row['total_episodes'] as int? ?? totalEpisodes;
+    rewatchCount = row['rewatch_count'] as int? ?? 0;
+    startDate = row['start_date'] as String?;
+    finishDate = row['finish_date'] as String?;
+    notes = row['notes'] as String?;
+  }
+
+  bool get hasLibraryData =>
+      isFavorite || status != 'none' || userScore != null || episodesWatched > 0 || (notes?.isNotEmpty ?? false);
 }
