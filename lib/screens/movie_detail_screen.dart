@@ -77,6 +77,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                           style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
                       const SizedBox(height: 10),
                       _buildAddToListRow(movie, provider),
+                      const SizedBox(height: 20),
+                      Text("Your Score",
+                          style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      _buildScoreRow(movie, provider),
+                      if (movie.mediaType == 'tv') ...[
+                        const SizedBox(height: 20),
+                        Text("Episode Progress",
+                            style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        _buildEpisodeProgress(movie, provider, theme),
+                      ],
                       if (recommendations.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         const Text("You May Also Like",
@@ -114,7 +126,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       expandedHeight: 320,
       pinned: true,
       leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-      actions: const [Icon(Icons.share, color: Colors.white), SizedBox(width: 16)],
+      // actions: const [Icon(Icons.share, color: Colors.white), SizedBox(width: 16)],
       flexibleSpace: FlexibleSpaceBar(
         background: backdrop.isEmpty
             ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white24, size: 64))
@@ -204,6 +216,63 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             () => provider.setStatus(movie.id, 'dropped', mediaType: movie.mediaType), Colors.redAccent),
         chip("Plan to Watch", Icons.bookmark, movie.status == 'planToWatch',
             () => provider.setStatus(movie.id, 'planToWatch', mediaType: movie.mediaType), Colors.blueAccent),
+      ],
+    );
+  }
+
+  Widget _buildScoreRow(Movie movie, MovieProvider provider) {
+    return Row(
+      children: [
+        ...List.generate(10, (i) {
+          final starValue = i + 1;
+          final filled = (movie.userScore ?? 0) >= starValue;
+          return GestureDetector(
+            onTap: () => provider.setScore(
+              movie.id,
+              movie.userScore == starValue.toDouble() ? null : starValue.toDouble(),
+              mediaType: movie.mediaType,
+            ),
+            child: Icon(filled ? Icons.star : Icons.star_border, color: Colors.amber, size: 22),
+          );
+        }),
+        const SizedBox(width: 10),
+        Text(
+          movie.userScore != null ? '${movie.userScore!.toStringAsFixed(0)}/10' : 'Not rated',
+          style: const TextStyle(color: Colors.white70, fontFamily: 'Times'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEpisodeProgress(Movie movie, MovieProvider provider, ThemeData theme) {
+    final total = movie.totalEpisodes;
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
+          onPressed: () => provider.decrementEpisode(movie.id, mediaType: movie.mediaType),
+        ),
+        Text(
+          total != null ? '${movie.episodesWatched} / $total' : '${movie.episodesWatched}',
+          style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        IconButton(
+          icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.secondary),
+          onPressed: () => provider.incrementEpisode(movie.id, mediaType: movie.mediaType),
+        ),
+        const Spacer(),
+        if (total != null && total > 0)
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: movie.watchProgress,
+                minHeight: 6,
+                backgroundColor: Colors.white12,
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ),
       ],
     );
   }
