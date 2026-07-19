@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/models/movie_model.dart';
 import '../data/services/api_service.dart';
@@ -23,6 +24,9 @@ class MovieProvider with ChangeNotifier {
 
   bool _isDetailLoading = false;
   String? _detailError;
+
+  List<Movie> _recommendations = [];
+  bool _isRecommendationsLoading = false;
 
   List<Movie> _searchResults = [];
   bool _isSearching = false;
@@ -55,6 +59,8 @@ class MovieProvider with ChangeNotifier {
   String? get animeError => _animeError;
   bool get isDetailLoading => _isDetailLoading;
   String? get detailError => _detailError;
+  List<Movie> get recommendations => _recommendations;
+  bool get isRecommendationsLoading => _isRecommendationsLoading;
   bool get isLibraryReady => _isLibraryReady;
 
   String? get profileName => _profileName;
@@ -72,6 +78,38 @@ class MovieProvider with ChangeNotifier {
   List<Movie> get completedMovies => _byStatus('completed');
   List<Movie> get droppedMovies => _byStatus('dropped');
   List<Movie> get planToWatchMovies => _byStatus('planToWatch');
+
+  // ---------- profile stats ----------
+  // Aggregates (counts/sums) read directly from the saved DB rows, so they're
+  // accurate immediately on launch. Card-rendering lists need actual Movie
+  // objects (poster, title), which come from the in-memory registry and are
+  // backfilled by _hydrateLibrary() shortly after launch.
+
+  List<Movie> get libraryMovies => _registry.values.where((m) => m.hasLibraryData).toList();
+
+  List<Movie> get recentlyUpdated {
+    final list = libraryMovies;
+    list.sort((a, b) => (b.updatedAt ?? '').compareTo(a.updatedAt ?? ''));
+    return list.take(10).toList();
+  }
+
+  List<Movie> get topRatedByUser {
+    final rated = libraryMovies.where((m) => m.userScore != null).toList();
+    rated.sort((a, b) => b.userScore!.compareTo(a.userScore!));
+    return rated.take(10).toList();
+  }
+
+  double get averageScore {
+    final scores = _savedEntries.values.map((r) => (r['score'] as num?)?.toDouble()).whereType<double>().toList();
+    if (scores.isEmpty) return 0;
+    return scores.reduce((a, b) => a + b) / scores.length;
+  }
+
+  int get totalEpisodesWatched =>
+      _savedEntries.values.fold(0, (sum, r) => sum + ((r['episodes_watched'] as int?) ?? 0));
+
+  int get totalRewatches =>
+      _savedEntries.values.fold(0, (sum, r) => sum + ((r['rewatch_count'] as int?) ?? 0));
 
   Map<int, String> get movieGenres => _movieGenres;
   Map<int, String> get tvGenres => _tvGenres;
@@ -192,12 +230,31 @@ class MovieProvider with ChangeNotifier {
       final json = await _apiService.getMovieDetail(id, mediaType: mediaType);
       final movie = existing ?? _register(Movie.fromJson(json, mediaType: mediaType));
       movie.applyDetail(json);
+      unawaited(fetchRecommendationsFor(id, mediaType: mediaType));
       return movie;
     } catch (e) {
       _detailError = 'فیلم لود نشد: ${e.toString()}';
       rethrow;
     } finally {
       _isDetailLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// "You May Also Like" for a specific title - actual per-title
+  /// recommendations from TMDB, not just the generic popular list.
+  Future<void> fetchRecommendationsFor(int id, {String mediaType = 'movie'}) async {
+    _isRecommendationsLoading = true;
+    _recommendations = [];
+    notifyListeners();
+    try {
+      final results = await _apiService.getRecommendations(id, mediaType: mediaType);
+      _recommendations = results.map(_register).toList();
+    } catch (e) {
+      debugPrint('Failed to load recommendations: $e');
+      _recommendations = [];
+    } finally {
+      _isRecommendationsLoading = false;
       notifyListeners();
     }
   }
@@ -359,6 +416,30 @@ Future<void> searchMovies(String query) async {
     } finally {
       _isLibraryReady = true;
       notifyListeners();
+      unawaited(_hydrateLibrary());
+    }
+  }
+
+  /// Fetches full Movie objects (poster, title, rating) for saved library
+  /// entries that aren't already cached in this session, so screens like
+  /// Profile have something to render right after launch instead of only
+  /// after the user happens to browse those titles again. Capped so a huge
+  /// library doesn't fire off dozens of requests on every cold start.
+  Future<void> _hydrateLibrary() async {
+    final sorted = _savedEntries.values.toList()
+      ..sort((a, b) => ((b['updated_at'] as String?) ?? '').compareTo((a['updated_at'] as String?) ?? ''));
+    for (final row in sorted.take(20)) {
+      final id = row['media_id'] as int;
+      final mediaType = row['media_type'] as String;
+      if (_registry.containsKey(_key(id, mediaType))) continue;
+      try {
+        final json = await _apiService.getMovieDetail(id, mediaType: mediaType);
+        final movie = _register(Movie.fromJson(json, mediaType: mediaType));
+        movie.applyDetail(json);
+        notifyListeners();
+      } catch (e) {
+        debugPrint('Failed to hydrate library entry $id ($mediaType): $e');
+      }
     }
   }
 

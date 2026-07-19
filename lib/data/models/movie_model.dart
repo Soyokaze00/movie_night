@@ -23,6 +23,7 @@ class Movie {
   String? startDate; // ISO8601
   String? finishDate; // ISO8601
   String? notes;
+  String? updatedAt; // ISO8601, set whenever this movie's library entry is saved
 
   Movie({
     required this.id,
@@ -46,6 +47,7 @@ class Movie {
     this.startDate,
     this.finishDate,
     this.notes,
+    this.updatedAt,
   });
 
   /// 0.0-1.0 progress bar value. For movies it's just watched/not-watched;
@@ -116,6 +118,7 @@ class Movie {
   }
 
   Map<String, Object?> toEntryMap() {
+    updatedAt = DateTime.now().toIso8601String();
     return {
       'media_id': id,
       'media_type': mediaType,
@@ -128,7 +131,7 @@ class Movie {
       'start_date': startDate,
       'finish_date': finishDate,
       'notes': notes,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': updatedAt,
     };
   }
 
@@ -144,6 +147,7 @@ class Movie {
     startDate = row['start_date'] as String?;
     finishDate = row['finish_date'] as String?;
     notes = row['notes'] as String?;
+    updatedAt = row['updated_at'] as String?;
   }
 
   bool get hasLibraryData =>
