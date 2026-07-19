@@ -28,6 +28,11 @@ class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging || _tabController.index != _tabController.previousIndex) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -50,7 +55,6 @@ class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       drawer: const AppDrawer(currentIndex: 2),
@@ -61,10 +65,22 @@ class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin
           builder: (context) => IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()),
         ),
         title: const Text("My Lists", style: TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmark_border, color: Colors.white),
+            tooltip: "Custom lists",
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Custom lists are coming soon"), backgroundColor: Color(0xFF1E1E1E)),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
-          indicatorColor: theme.colorScheme.secondary,
+          indicatorColor: _tabs[_tabController.index].color,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 13),

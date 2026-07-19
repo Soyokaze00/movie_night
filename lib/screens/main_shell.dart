@@ -12,6 +12,12 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
+class _NavItem {
+  final IconData icon;
+  final String label;
+  const _NavItem(this.icon, this.label);
+}
+
 class _MainShellState extends State<MainShell> {
   late int _currentIndex;
 
@@ -20,6 +26,13 @@ class _MainShellState extends State<MainShell> {
     DiscoverTab(),
     ListsTab(),
     ProfileTab(),
+  ];
+
+  static const List<_NavItem> _navItems = [
+    _NavItem(Icons.home_rounded, "Home"),
+    _NavItem(Icons.explore_rounded, "Discover"),
+    _NavItem(Icons.list_alt_rounded, "My Lists"),
+    _NavItem(Icons.person_rounded, "Profile"),
   ];
 
   @override
@@ -34,19 +47,61 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: IndexedStack(index: _currentIndex, children: _tabs),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        backgroundColor: Colors.black,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: theme.colorScheme.secondary,
-        unselectedItemColor: Colors.white54,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Discover"),
-          BottomNavigationBarItem(icon: Icon(Icons.list), label: "My Lists"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Container(
+            height: 68,
+            decoration: BoxDecoration(
+              color: const Color(0xFF141018),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Row(
+              children: List.generate(_navItems.length, (i) {
+                final selected = i == _currentIndex;
+                final item = _navItems[i];
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _currentIndex = i),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: selected ? theme.colorScheme.secondary.withOpacity(0.18) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            item.icon,
+                            color: selected ? theme.colorScheme.secondary : Colors.white54,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.label,
+                          style: TextStyle(
+                            fontFamily: 'Times',
+                            fontSize: 11,
+                            fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                            color: selected ? theme.colorScheme.secondary : Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
       ),
     );
   }
