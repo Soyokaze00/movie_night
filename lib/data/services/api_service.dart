@@ -78,7 +78,7 @@ class ApiService {
   // each tagged with its own media_type - we keep movie/tv and drop people
   // so anime (tv) titles are actually findable, not just movies.
   Future<List<Movie>> searchMovies(String query) async {
-    final url = _buildUrl('search/multi', extraParams: 'query=${Uri.encodeQueryComponent(query)}');
+    final url = _buildUrl('search/multi', extraParams: 'query=${Uri.encodeQueryComponent(query)}&include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -123,7 +123,7 @@ class ApiService {
   }
 
   Future<List<Movie>> getPopularAnime() async {
-    final url = _buildUrl('discover/tv', extraParams: 'with_genres=16&with_origin_country=JP&sort_by=popularity.desc');
+    final url = _buildUrl('discover/tv', extraParams: 'with_genres=16&with_origin_country=JP&sort_by=popularity.desc&include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -139,6 +139,24 @@ class ApiService {
     }
   }
 
+
+  Future<List<Movie>> getRecommendations(int id, {String mediaType = 'movie'}) async {
+    final endpoint = mediaType == 'tv' ? 'tv/$id/recommendations' : 'movie/$id/recommendations';
+    final url = _buildUrl(endpoint);
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final results = (data['results'] as List?) ?? [];
+        return results.map((json) => Movie.fromJson(json, mediaType: mediaType)).toList();
+      } else {
+        throw Exception('Failed to load recommendations: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint("Connection Error fetching recommendations: $e");
+      throw Exception('Error fetching recommendations: $e');
+    }
+  }
 
   Future<Map<int, String>> getGenres(String mediaType) async {
     final url = _buildUrl('genre/$mediaType/list');
@@ -158,7 +176,7 @@ class ApiService {
   }
 
   Future<List<Movie>> discoverByGenre({required String mediaType, int? genreId, int page = 1}) async {
-    final params = StringBuffer('sort_by=popularity.desc&page=$page');
+    final params = StringBuffer('sort_by=popularity.desc&page=$page&include_adult=false');
     if (genreId != null) params.write('&with_genres=$genreId');
     final url = _buildUrl('discover/$mediaType', extraParams: params.toString());
     try {

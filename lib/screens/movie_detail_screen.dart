@@ -39,7 +39,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             return Center(child: Text(provider.detailError ?? "فیلم پیدا نشد", style: const TextStyle(color: Colors.white)));
           }
 
-          final recommendations = provider.popularMovies.where((m) => m.id != movie.id).toList();
+          final recommendations = provider.recommendations.where((m) => m.id != movie.id).toList();
 
           return CustomScrollView(
             slivers: [
@@ -101,7 +101,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               if (recommendations.isNotEmpty)
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 200,
+                    height: 210,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
