@@ -130,7 +130,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(widget.isFirstRun ? "Get Started" : "Save",
-                      style: const TextStyle(fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: const TextStyle(color: Color.fromARGB(179, 0, 0, 0), fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
             ],

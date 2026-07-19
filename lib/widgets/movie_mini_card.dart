@@ -9,45 +9,78 @@ class MovieMiniCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+    final theme = Theme.of(context);
+    final borderGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [theme.colorScheme.secondary, theme.colorScheme.primary, Colors.orangeAccent],
+    );
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType)),
       ),
       child: Container(
-        width: 130,
-        margin: const EdgeInsets.only(right: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: movie.posterPath.isEmpty
-                  ? Container(height: 150, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
+        width: 140,
+        height: 200,
+        margin: const EdgeInsets.only(right: 14),
+        padding: const EdgeInsets.all(1.5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: borderGradient,
+          boxShadow: [
+            BoxShadow(color: theme.colorScheme.secondary.withOpacity(0.25), blurRadius: 10, spreadRadius: 0.5),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.5),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              movie.posterPath.isEmpty
+                  ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
                   : Image.network(
                       '$imageBaseUrl${movie.posterPath}',
-                      height: 150,
-                      width: 130,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          Container(height: 150, width: 130, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                          Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
                       loadingBuilder: (context, child, progress) =>
-                          progress == null ? child : Container(height: 150, width: 130, color: Colors.white10),
+                          progress == null ? child : Container(color: Colors.white10),
                     ),
-            ),
-            const SizedBox(height: 4),
-            Text(movie.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-            const SizedBox(height: 2),
-            Row(children: [
-              const Icon(Icons.star, color: Colors.amber, size: 12),
-              const SizedBox(width: 2),
-              Text(movie.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'Times')),
-            ]),
-          ],
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Colors.black.withOpacity(0.95), Colors.transparent],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(movie.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Times', fontWeight: FontWeight.bold, height: 1.15)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 13),
+                        const SizedBox(width: 3),
+                        Text(movie.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'Times')),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

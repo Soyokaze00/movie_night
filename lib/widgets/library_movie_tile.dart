@@ -14,47 +14,60 @@ class LibraryMovieTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
       child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+          boxShadow: [
+            BoxShadow(color: color.withOpacity(0.15), blurRadius: 10, spreadRadius: 0.5),
+          ],
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: movie.posterPath.isEmpty
-                  ? Container(width: 60, height: 85, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
+                  ? Container(width: 64, height: 90, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
                   : Image.network(
                       '$imageBaseUrl${movie.posterPath}',
-                      width: 60,
-                      height: 85,
+                      width: 64,
+                      height: 90,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          Container(width: 60, height: 85, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                          Container(width: 64, height: 90, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
                     ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(movie.title,
-                      style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 4),
+                      style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 6),
                   Row(children: [
-                    if (movie.year != '—') Text(movie.year, style: const TextStyle(color: Colors.white54, fontFamily: 'Times', fontSize: 12)),
+                    if (movie.year != '—') ...[
+                      const Icon(Icons.calendar_today, size: 12, color: Colors.white54),
+                      const SizedBox(width: 4),
+                      Text(movie.year, style: const TextStyle(color: Colors.white54, fontFamily: 'Times', fontSize: 12)),
+                    ],
                     if (movie.runtimeLabel.isNotEmpty) ...[
-                      const Text(" • ", style: TextStyle(color: Colors.white54)),
+                      const Text("  •  ", style: TextStyle(color: Colors.white38)),
+                      const Icon(Icons.access_time, size: 12, color: Colors.white54),
+                      const SizedBox(width: 4),
                       Text(movie.runtimeLabel, style: const TextStyle(color: Colors.white54, fontFamily: 'Times', fontSize: 12)),
                     ],
                   ]),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 14),
-                    const SizedBox(width: 3),
-                    Text(movie.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 12)),
+                    const Icon(Icons.star, color: Colors.amber, size: 15),
+                    const SizedBox(width: 4),
+                    Text(movie.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 13)),
                   ]),
                   if (showProgress) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(value: movie.watchProgress, minHeight: 5, backgroundColor: Colors.white12, color: color),
@@ -63,7 +76,8 @@ class LibraryMovieTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.white24),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, color: color.withOpacity(0.8)),
           ],
         ),
       ),
