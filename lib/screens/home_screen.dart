@@ -85,15 +85,6 @@ class _HomeTabState extends State<HomeTab> {
                   _buildFeaturedSection(trending[0], theme),
                   _buildMovieRow("Trending Now", trending),
                   _buildMovieRow("Popular Movies", movieProvider.popularMovies),
-                  // if (movieProvider.isAnimeLoading && movieProvider.airingAnime.isEmpty)
-                  //   const Padding(
-                  //     padding: EdgeInsets.symmetric(vertical: 20),
-                  //     child: Center(child: CircularProgressIndicator(color: Colors.white54)),
-                  //   )
-                  // else ...[
-                  //   _buildMovieRow("Airing Anime", movieProvider.airingAnime),
-                  //   _buildMovieRow("All Time Popular Anime", movieProvider.popularAnime),
-                  // ],
                   _buildMyLists(theme, movieProvider),
                   const SizedBox(height: 30),
                 ],

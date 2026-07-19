@@ -129,7 +129,7 @@ class ProfileTab extends StatelessWidget {
       children: [
         _activityChip(Icons.collections_bookmark, "${provider.libraryMovies.length}", "Titles Tracked", theme.colorScheme.secondary),
         _activityChip(Icons.tv, "${provider.totalEpisodesWatched}", "Episodes Watched", Colors.cyanAccent),
-        _activityChip(Icons.star, avg != null ? avg.toStringAsFixed(1) : "—", "Avg. Rating", Colors.amber),
+        _activityChip(Icons.star, avg == 0 ? "—" : avg.toStringAsFixed(1), "Avg. Rating", Colors.amber),
         _activityChip(Icons.replay, "${provider.totalRewatches}", "Rewatches", Colors.lightGreenAccent),
       ],
     );
