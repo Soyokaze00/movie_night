@@ -53,7 +53,7 @@ class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      drawer: const AppDrawer(currentIndex: 1),
+      drawer: const AppDrawer(currentIndex: 2),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,

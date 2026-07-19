@@ -6,12 +6,8 @@ import '../data/services/db_service.dart';
 class MovieProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
   final DbService _db = DbService.instance;
-
-  // registry با کلید "mediaType-id" تا فیلم و سریالی که id یکسان دارن قاطی نشن
   final Map<String, Movie> _registry = {};
 
-  // raw saved rows keyed the same way, so movies not yet fetched from TMDB
-  // this session can still be shown as "has library data" once fetched
   Map<String, Map<String, Object?>> _savedEntries = {};
 
   List<Movie> _trendingMovies = [];
@@ -37,6 +33,16 @@ class MovieProvider with ChangeNotifier {
   String? _profileName;
   String? _profileAvatar;
   bool _isProfileReady = false;
+
+  Map<int, String> _movieGenres = {};
+  Map<int, String> _tvGenres = {};
+  bool _isGenresLoading = false;
+
+  List<Movie> _discoverResults = [];
+  bool _isDiscoverLoading = false;
+  String? _discoverError;
+  String _discoverMediaType = 'movie';
+  int? _discoverGenreId;
 
   List<Movie> get trendingMovies => _trendingMovies;
   List<Movie> get popularMovies => _popularMovies;
@@ -66,6 +72,18 @@ class MovieProvider with ChangeNotifier {
   List<Movie> get completedMovies => _byStatus('completed');
   List<Movie> get droppedMovies => _byStatus('dropped');
   List<Movie> get planToWatchMovies => _byStatus('planToWatch');
+
+  Map<int, String> get movieGenres => _movieGenres;
+  Map<int, String> get tvGenres => _tvGenres;
+  bool get isGenresLoading => _isGenresLoading;
+
+  List<Movie> get discoverResults => _discoverResults;
+  bool get isDiscoverLoading => _isDiscoverLoading;
+  String? get discoverError => _discoverError;
+  String get discoverMediaType => _discoverMediaType;
+  int? get discoverGenreId => _discoverGenreId;
+
+
 
   List<Movie> _byStatus(String status) => _registry.values.where((m) => m.status == status).toList();
 
@@ -128,6 +146,43 @@ class MovieProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchGenres() async {
+    if (_movieGenres.isNotEmpty && _tvGenres.isNotEmpty) return;
+    _isGenresLoading = true;
+    notifyListeners();
+    try {
+      final results = await Future.wait([
+        _apiService.getGenres('movie'),
+        _apiService.getGenres('tv'),
+      ]);
+      _movieGenres = results[0];
+      _tvGenres = results[1];
+    } catch (e) {
+      debugPrint('Failed to load genres: $e');
+    } finally {
+      _isGenresLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchDiscover({String? mediaType, int? genreId}) async {
+    _discoverMediaType = mediaType ?? _discoverMediaType;
+    _discoverGenreId = genreId;
+    _isDiscoverLoading = true;
+    _discoverError = null;
+    notifyListeners();
+    try {
+      final results = await _apiService.discoverByGenre(mediaType: _discoverMediaType, genreId: _discoverGenreId);
+      _discoverResults = results.map(_register).toList();
+    } catch (e) {
+      _discoverError = 'Nothing Found: ${e.toString()}';
+      _discoverResults = [];
+    } finally {
+      _isDiscoverLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<Movie> fetchMovieDetail(int id, {String mediaType = 'movie'}) async {
     _isDetailLoading = true;
     _detailError = null;
@@ -147,7 +202,7 @@ class MovieProvider with ChangeNotifier {
     }
   }
 
-  Future<void> searchMovies(String query) async {
+Future<void> searchMovies(String query) async {
     if (query.trim().isEmpty) {
       _searchResults = [];
       _searchError = null;
@@ -158,10 +213,34 @@ class MovieProvider with ChangeNotifier {
     _searchError = null;
     notifyListeners();
     try {
-      final results = await _apiService.searchMovies(query);
-      _searchResults = results.map(_register).toList();
+      final titleResults = await _apiService.searchMovies(query);
+
+      List<Map<String, dynamic>> personCredits = [];
+      try {
+        final people = await _apiService.searchPerson(query);
+        if (people.isNotEmpty) {
+          final topPeople = people.take(2); 
+          final creditLists = await Future.wait(topPeople.map((p) => _apiService.getPersonCredits(p['id'] as int)));
+          personCredits = creditLists.expand((c) => c).toList();
+        }
+      } catch (e) {
+        debugPrint('Person search failed (non-fatal): $e');
+      }
+
+      final merged = <String, Movie>{};
+      for (final m in titleResults) {
+        merged['${m.mediaType}-${m.id}'] = m;
+      }
+      for (final credit in personCredits) {
+        final mediaType = credit['media_type'] as String? ?? 'movie';
+        if (mediaType != 'movie' && mediaType != 'tv') continue;
+        final movie = Movie.fromJson(credit, mediaType: mediaType);
+        merged.putIfAbsent('${movie.mediaType}-${movie.id}', () => movie);
+      }
+
+      _searchResults = merged.values.map(_register).toList();
     } catch (e) {
-      _searchError = 'جستجو ناموفق بود: ${e.toString()}';
+      _searchError = 'Search unsuccessful: ${e.toString()}';
       _searchResults = [];
     } finally {
       _isSearching = false;
@@ -174,8 +253,6 @@ class MovieProvider with ChangeNotifier {
     _searchError = null;
     notifyListeners();
   }
-
-  // ---------- library actions (all persisted to sqlite) ----------
 
   void toggleFavorite(int id, {String mediaType = 'movie'}) {
     final movie = _registry[_key(id, mediaType)];
@@ -190,7 +267,6 @@ class MovieProvider with ChangeNotifier {
     final wasStatus = movie.status;
     movie.status = movie.status == status ? 'none' : status;
 
-    // convenience: track dates automatically as status changes
     final now = DateTime.now().toIso8601String();
     if (movie.status == 'watching' && movie.startDate == null) {
       movie.startDate = now;
@@ -201,14 +277,12 @@ class MovieProvider with ChangeNotifier {
         movie.episodesWatched = movie.totalEpisodes!;
       }
       if (wasStatus == 'completed') {
-        // toggling completed off->on again counts as a rewatch
         movie.rewatchCount += 1;
       }
     }
     _saveEntry(movie);
   }
 
-  /// score: 0-10 (0.5 steps), or null to clear the rating
   void setScore(int id, double? score, {String mediaType = 'movie'}) {
     final movie = _registry[_key(id, mediaType)];
     if (movie == null) return;
@@ -216,9 +290,6 @@ class MovieProvider with ChangeNotifier {
     _saveEntry(movie);
   }
 
-  /// Sets episode progress directly. Clamped to totalEpisodes if known.
-  /// Auto-flips status to 'watching' if it was 'none' or 'planToWatch',
-  /// and to 'completed' once the last episode is watched.
   void setEpisodeProgress(int id, int episodesWatched, {String mediaType = 'tv'}) {
     final movie = _registry[_key(id, mediaType)];
     if (movie == null) return;
@@ -265,7 +336,7 @@ class MovieProvider with ChangeNotifier {
   }
 
   Future<void> _saveEntry(Movie movie) async {
-    notifyListeners(); // update UI immediately, don't wait on disk I/O
+    notifyListeners();
     final key = _key(movie.id, movie.mediaType);
     if (!movie.hasLibraryData) {
       _savedEntries.remove(key);
@@ -291,8 +362,6 @@ class MovieProvider with ChangeNotifier {
     }
   }
 
-  // ---------- local profile (name + avatar, no auth/server) ----------
-
   Future<void> _loadProfile() async {
     try {
       final row = await _db.getProfile();
@@ -312,8 +381,6 @@ class MovieProvider with ChangeNotifier {
     _profileAvatar = avatar;
     notifyListeners();
   }
-
-  // ---------- custom lists ----------
 
   Future<List<Map<String, Object?>>> getCustomLists() => _db.getLists();
 
@@ -338,9 +405,6 @@ class MovieProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Resolves a custom list's saved (mediaId, mediaType) rows into Movie
-  /// objects -- pulls from the in-memory registry if already fetched this
-  /// session, otherwise fetches fresh from TMDB.
   Future<List<Movie>> getCustomListMovies(int listId) async {
     final items = await _db.getItemsForList(listId);
     final movies = <Movie>[];
