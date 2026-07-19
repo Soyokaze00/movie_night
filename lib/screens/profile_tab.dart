@@ -12,7 +12,7 @@ class ProfileTab extends StatelessWidget {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
-      drawer: const AppDrawer(currentIndex: 2),
+      drawer: const AppDrawer(currentIndex: 3),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,

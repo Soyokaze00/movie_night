@@ -66,9 +66,10 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const Divider(color: Colors.white24, height: 1),
                 const SizedBox(height: 8),
-                item(Icons.person, "Profile", 2),
+                item(Icons.person, "Profile", 3),
                 item(Icons.home, "Home", 0),
-                item(Icons.list, "My Lists", 1),
+                item(Icons.explore, "Discover", 1),
+                item(Icons.list, "My Lists", 2),
               ],
             );
           },
