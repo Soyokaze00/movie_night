@@ -45,7 +45,7 @@ class AppDrawer extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 26,
-                          backgroundColor: theme.colorScheme.secondary.withOpacity(0.25),
+                          backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.25),
                           child: provider.profileAvatar != null
                               ? Text(provider.profileAvatar!, style: const TextStyle(fontSize: 24))
                               : const Icon(Icons.person, color: Colors.white, size: 24),

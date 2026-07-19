@@ -16,11 +16,11 @@ class LibraryMovieTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
           boxShadow: [
-            BoxShadow(color: color.withOpacity(0.15), blurRadius: 10, spreadRadius: 0.5),
+            BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 10, spreadRadius: 0.5),
           ],
         ),
         child: Row(
@@ -77,7 +77,7 @@ class LibraryMovieTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, color: color.withOpacity(0.8)),
+            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.8)),
           ],
         ),
       ),

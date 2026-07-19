@@ -76,7 +76,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               Center(
                 child: CircleAvatar(
                   radius: 44,
-                  backgroundColor: theme.colorScheme.secondary.withOpacity(0.25),
+                  backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.25),
                   child: Text(_selectedAvatar, style: const TextStyle(fontSize: 40)),
                 ),
               ),
@@ -110,7 +110,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       height: 52,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: selected ? theme.colorScheme.secondary.withOpacity(0.3) : Colors.white10,
+                        color: selected ? theme.colorScheme.secondary.withValues(alpha: 0.3) : Colors.white10,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: selected ? theme.colorScheme.secondary : Colors.transparent, width: 2),
                       ),

@@ -110,7 +110,7 @@ class _DiscoverTabState extends State<DiscoverTab> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: entries.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (index == 0) {
             final active = provider.discoverGenreId == null;
@@ -130,7 +130,7 @@ class _DiscoverTabState extends State<DiscoverTab> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? theme.colorScheme.secondary.withOpacity(0.25) : Colors.white10,
+          color: active ? theme.colorScheme.secondary.withValues(alpha: 0.25) : Colors.white10,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: active ? theme.colorScheme.secondary : Colors.white24),
         ),

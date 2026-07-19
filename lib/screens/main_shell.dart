@@ -55,9 +55,9 @@ class _MainShellState extends State<MainShell> {
             decoration: BoxDecoration(
               color: const Color(0xFF141018),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6)),
               ],
             ),
             child: Row(
@@ -75,7 +75,7 @@ class _MainShellState extends State<MainShell> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
-                            color: selected ? theme.colorScheme.secondary.withOpacity(0.18) : Colors.transparent,
+                            color: selected ? theme.colorScheme.secondary.withValues(alpha: 0.18) : Colors.transparent,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(

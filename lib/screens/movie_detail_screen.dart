@@ -187,7 +187,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: active ? color.withOpacity(0.25) : Colors.white10,
+            color: active ? color.withValues(alpha: 0.25) : Colors.white10,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: active ? color : Colors.white24),
           ),

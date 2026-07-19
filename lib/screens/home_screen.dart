@@ -109,7 +109,7 @@ Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
           color: Colors.white10,
           image: movie.posterPath.isEmpty
               ? null
-              : DecorationImage(image: NetworkImage('$imageBaseUrl${movie.posterPath}'), fit: BoxFit.cover, onError: (_, __) {}),
+              : DecorationImage(image: NetworkImage('$imageBaseUrl${movie.posterPath}'), fit: BoxFit.cover, onError: (_, _) {}),
         ),
         child: Container(
           decoration: BoxDecoration(
@@ -117,7 +117,7 @@ Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
             gradient: LinearGradient(
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
-              colors: [Colors.black.withOpacity(0.9), Colors.transparent],
+              colors: [Colors.black.withValues(alpha: 0.9), Colors.transparent],
             ),
           ),
           padding: const EdgeInsets.all(16),
@@ -154,7 +154,7 @@ Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
               Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Times', fontWeight: FontWeight.bold)),
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllScreen(title: title, movies: movies))),
-                child: Text("See All >", style: TextStyle(color: const Color.fromARGB(255, 251, 92, 224).withOpacity(0.8), fontSize: 14, fontFamily: 'Times')),
+                child: Text("See All >", style: TextStyle(color: const Color.fromARGB(255, 251, 92, 224).withValues(alpha: 0.8), fontSize: 14, fontFamily: 'Times')),
               ),
             ],
           ),
@@ -205,7 +205,7 @@ Widget _buildFeaturedSection(Movie movie, ThemeData theme) {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieListScreen(type: type))),
       child: Container(
-        decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(12)),
         child: Row(
           children: [
             const SizedBox(width: 10),

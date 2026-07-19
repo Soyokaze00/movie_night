@@ -69,7 +69,7 @@ class ProfileTab extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 32,
-          backgroundColor: theme.colorScheme.secondary.withOpacity(0.3),
+          backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.3),
           child: provider.profileAvatar != null
               ? Text(provider.profileAvatar!, style: const TextStyle(fontSize: 28))
               : const Icon(Icons.person, color: Colors.white, size: 32),
@@ -108,7 +108,7 @@ class ProfileTab extends StatelessWidget {
 
   Widget _statTile(String label, int count, Color color) {
     return Container(
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -139,7 +139,7 @@ class ProfileTab extends StatelessWidget {
     return Container(
       width: 150,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           Icon(icon, color: color, size: 22),
@@ -177,7 +177,7 @@ class ProfileTab extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: provider.topRatedByUser.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final movie = provider.topRatedByUser[index];
           return GestureDetector(
@@ -226,7 +226,7 @@ class ProfileTab extends StatelessWidget {
   Widget _buildEmptyHint(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14)),
       child: Row(
         children: [
           Icon(Icons.explore, color: theme.colorScheme.secondary),
