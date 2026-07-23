@@ -30,7 +30,7 @@ class MovieMiniCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           gradient: borderGradient,
           boxShadow: [
-            BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.25), blurRadius: 10, spreadRadius: 0.5),
+            BoxShadow(color: theme.colorScheme.secondary.withOpacity(0.25), blurRadius: 10, spreadRadius: 0.5),
           ],
         ),
         child: ClipRRect(
@@ -58,7 +58,7 @@ class MovieMiniCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
-                      colors: [Colors.black.withValues(alpha: 0.95), Colors.transparent],
+                      colors: [Colors.black.withOpacity(0.95), Colors.transparent],
                     ),
                   ),
                   child: Column(

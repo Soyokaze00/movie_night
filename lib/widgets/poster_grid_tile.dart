@@ -9,6 +9,13 @@ class PosterGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+    final theme = Theme.of(context);
+    final borderGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [theme.colorScheme.secondary, theme.colorScheme.primary, Colors.orangeAccent],
+    );
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -18,18 +25,28 @@ class PosterGridTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: movie.posterPath.isEmpty
-                  ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
-                  : Image.network(
-                      '$imageBaseUrl${movie.posterPath}',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
-                      loadingBuilder: (context, child, progress) => progress == null ? child : Container(color: Colors.white10),
-                    ),
+            child: Container(
+              padding: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(13),
+                gradient: borderGradient,
+                boxShadow: [
+                  BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.25), blurRadius: 8, spreadRadius: 0.5),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11.5),
+                child: movie.posterPath.isEmpty
+                    ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
+                    : Image.network(
+                        '$imageBaseUrl${movie.posterPath}',
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) =>
+                            Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                        loadingBuilder: (context, child, progress) => progress == null ? child : Container(color: Colors.white10),
+                      ),
+              ),
             ),
           ),
           const SizedBox(height: 6),

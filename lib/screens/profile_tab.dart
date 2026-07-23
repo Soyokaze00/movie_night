@@ -169,9 +169,17 @@ class ProfileTab extends StatelessWidget {
       ),
     );
   }
+  
 
   Widget _buildTopRatedRow(BuildContext context, MovieProvider provider) {
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+    final theme = Theme.of(context);
+    final borderGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [theme.colorScheme.secondary, theme.colorScheme.primary, Colors.orangeAccent],
+    );
+
     return SizedBox(
       height: 200,
       child: ListView.separated(
@@ -183,13 +191,21 @@ class ProfileTab extends StatelessWidget {
           return GestureDetector(
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
-            child: SizedBox(
+            child: Container(
               width: 120,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: movie.posterPath.isEmpty
+              padding: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(13),
+                gradient: borderGradient,
+                boxShadow: [
+                  BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.25), blurRadius: 8, spreadRadius: 0.5),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11.5),
+                child: Stack(
+                  children: [
+                    movie.posterPath.isEmpty
                         ? Container(height: 170, width: 120, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
                         : Image.network(
                             '$imageBaseUrl${movie.posterPath}',
@@ -199,22 +215,22 @@ class ProfileTab extends StatelessWidget {
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(height: 170, width: 120, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
                           ),
-                  ),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(6)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 12),
-                        const SizedBox(width: 2),
-                        Text(movie.userScore!.toStringAsFixed(0),
-                            style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-                      ]),
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(6)),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 12),
+                          const SizedBox(width: 2),
+                          Text(movie.userScore!.toStringAsFixed(0),
+                              style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+                        ]),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -222,7 +238,7 @@ class ProfileTab extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildEmptyHint(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),

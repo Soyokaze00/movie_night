@@ -65,37 +65,28 @@ class _ListsTabState extends State<ListsTab> with SingleTickerProviderStateMixin
           builder: (context) => IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer()),
         ),
         title: const Text("My Lists", style: TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_border, color: Colors.white),
-            tooltip: "Custom lists",
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Custom lists are coming soon"), backgroundColor: Color(0xFF1E1E1E)),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: _tabs[_tabController.index].color,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white54,
           labelStyle: const TextStyle(fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: _tabs
-              .map((t) => Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(t.icon, size: 16, color: t.color),
-                        const SizedBox(width: 6),
-                        Text(t.label),
-                      ],
-                    ),
-                  ))
-              .toList(),
+          tabs: List.generate(_tabs.length, (i) {
+            final selected = i == _tabController.index;
+            final t = _tabs[i];
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(t.icon, size: 16, color: selected ? t.color : Colors.white54),
+                  const SizedBox(width: 6),
+                  Text(t.label),
+                ],
+              ),
+            );
+          }),
         ),
       ),
       body: Consumer<MovieProvider>(

@@ -77,6 +77,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                           style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
                       const SizedBox(height: 10),
                       _buildAddToListRow(movie, provider),
+                      if (movie.status == 'completed') ...[
+                        const SizedBox(height: 14),
+                        _buildRewatchRow(movie, provider, theme),
+                      ],
                       const SizedBox(height: 20),
                       Text("Your Score",
                           style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
@@ -101,7 +105,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               if (recommendations.isNotEmpty)
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: 210,
+                    height: 200,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -126,7 +130,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       expandedHeight: 320,
       pinned: true,
       leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-      // actions: const [Icon(Icons.share, color: Colors.white), SizedBox(width: 16)],
       flexibleSpace: FlexibleSpaceBar(
         background: backdrop.isEmpty
             ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white24, size: 64))
@@ -220,6 +223,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     );
   }
 
+
+  Widget _buildRewatchRow(Movie movie, MovieProvider provider, ThemeData theme) {
+    return Row(
+      children: [
+        Icon(Icons.replay, color: theme.colorScheme.secondary, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          'Rewatched ${movie.rewatchCount} time${movie.rewatchCount == 1 ? '' : 's'}',
+          style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 13),
+        ),
+        const SizedBox(width: 12),
+        GestureDetector(
+          onTap: () => provider.incrementRewatch(movie.id, mediaType: movie.mediaType),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text("+ Mark Rewatch",
+                style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ],
+    );
+  }
+
+
   Widget _buildScoreRow(Movie movie, MovieProvider provider) {
     return Row(
       children: [
@@ -246,34 +277,99 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Widget _buildEpisodeProgress(Movie movie, MovieProvider provider, ThemeData theme) {
     final total = movie.totalEpisodes;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        IconButton(
-          icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
-          onPressed: () => provider.decrementEpisode(movie.id, mediaType: movie.mediaType),
-        ),
-        Text(
-          total != null ? '${movie.episodesWatched} / $total' : '${movie.episodesWatched}',
-          style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        IconButton(
-          icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.secondary),
-          onPressed: () => provider.incrementEpisode(movie.id, mediaType: movie.mediaType),
-        ),
-        const Spacer(),
-        if (total != null && total > 0)
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: movie.watchProgress,
-                minHeight: 6,
-                backgroundColor: Colors.white12,
-                color: theme.colorScheme.secondary,
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
+              onPressed: () => provider.decrementEpisode(movie.id, mediaType: movie.mediaType),
+            ),
+            GestureDetector(
+              onTap: () => _showEpisodeEntryDialog(context, movie, provider),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  total != null ? '${movie.episodesWatched} / $total' : '${movie.episodesWatched}',
+                  style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
+            ),
+            IconButton(
+              icon: Icon(Icons.add_circle_outline, color: theme.colorScheme.secondary),
+              onPressed: () => provider.incrementEpisode(movie.id, mediaType: movie.mediaType),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.edit, color: Colors.white30, size: 14),
+          ],
+        ),
+        if (total != null && total > 0)
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 6,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            ),
+            child: Slider(
+              value: movie.episodesWatched.toDouble().clamp(0, total.toDouble()),
+              min: 0,
+              max: total.toDouble(),
+              divisions: total,
+              label: '${movie.episodesWatched}',
+              activeColor: theme.colorScheme.secondary,
+              inactiveColor: Colors.white12,
+              onChanged: (value) => provider.setEpisodeProgress(movie.id, value.round(), mediaType: movie.mediaType),
             ),
           ),
       ],
     );
+  }
+
+  Future<void> _showEpisodeEntryDialog(BuildContext context, Movie movie, MovieProvider provider) async {
+    final controller = TextEditingController(text: movie.episodesWatched.toString());
+    final total = movie.totalEpisodes;
+    final theme = Theme.of(context);
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text("Set Episode Progress", style: TextStyle(color: Colors.white, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: Colors.white, fontFamily: 'Times'),
+            decoration: InputDecoration(
+              hintText: total != null ? 'Episodes watched (0-$total)' : 'Episodes watched',
+              hintStyle: const TextStyle(color: Colors.white38, fontFamily: 'Times'),
+              filled: true,
+              fillColor: Colors.white10,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+            onSubmitted: (value) => Navigator.pop(dialogContext, int.tryParse(value)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancel", style: TextStyle(color: Colors.white54, fontFamily: 'Times')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, int.tryParse(controller.text)),
+              child: Text("Save", style: TextStyle(color: theme.colorScheme.secondary, fontFamily: 'Times', fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+    if (result != null) {
+      provider.setEpisodeProgress(movie.id, result, mediaType: movie.mediaType);
+    }
   }
 }
