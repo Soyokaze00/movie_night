@@ -94,27 +94,29 @@ class ProfileTab extends StatelessWidget {
       crossAxisCount: 3,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      childAspectRatio: 1.0,
       children: [
-        _statTile("Favorites", provider.favoriteMovies.length, Colors.pinkAccent),
-        _statTile("Watching", provider.watchingMovies.length, Colors.purpleAccent),
-        _statTile("On Hold", provider.onHoldMovies.length, Colors.orange),
-        _statTile("Completed", provider.completedMovies.length, Colors.teal),
-        _statTile("Plan to Watch", provider.planToWatchMovies.length, Colors.blueAccent),
-        _statTile("Dropped", provider.droppedMovies.length, Colors.redAccent),
+        _statTile("Favorites", provider.favoriteMovies.length, Colors.pinkAccent, Icons.favorite),
+        _statTile("Watching", provider.watchingMovies.length, Colors.purpleAccent, Icons.play_circle_fill),
+        _statTile("On Hold", provider.onHoldMovies.length, Colors.orange, Icons.pause_circle_filled),
+        _statTile("Completed", provider.completedMovies.length, Colors.teal, Icons.check_circle),
+        _statTile("Plan to Watch", provider.planToWatchMovies.length, Colors.blueAccent, Icons.bookmark),
+        _statTile("Dropped", provider.droppedMovies.length, Colors.redAccent, Icons.cancel),
       ],
     );
   }
 
-  Widget _statTile(String label, int count, Color color) {
+  Widget _statTile(String label, int count, Color color, IconData icon) {
     return Container(
       decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
           Text('$count', style: TextStyle(color: color, fontFamily: 'Times', fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(label, style: const TextStyle(color: Colors.white70, fontFamily: 'Times', fontSize: 12)),
         ],
       ),
@@ -123,41 +125,59 @@ class ProfileTab extends StatelessWidget {
 
   Widget _buildActivityRow(MovieProvider provider, ThemeData theme) {
     final avg = provider.averageScore;
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        _activityChip(Icons.collections_bookmark, "${provider.libraryMovies.length}", "Titles Tracked", theme.colorScheme.secondary),
-        _activityChip(Icons.tv, "${provider.totalEpisodesWatched}", "Episodes Watched", Colors.cyanAccent),
-        _activityChip(Icons.star, avg == 0 ? "—" : avg.toStringAsFixed(1), "Avg. Rating", Colors.amber),
-        _activityChip(Icons.replay, "${provider.totalRewatches}", "Rewatches", Colors.lightGreenAccent),
-      ],
-    );
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 20,
+        children: [
+          _activityChip(Icons.collections_bookmark, "${provider.libraryMovies.length}", "Titles Tracked", theme.colorScheme.secondary),
+          _activityChip(Icons.tv, "${provider.totalEpisodesWatched}", "Episodes Watched", Colors.cyanAccent),
+          _activityChip(Icons.star, avg == 0 ? "—" : avg.toStringAsFixed(1), "Avg. Rating", Colors.amber),
+          _activityChip(Icons.replay, "${provider.totalRewatches}", "Rewatches", Colors.lightGreenAccent),
+        ],
+      ),
+    ); 
   }
 
   Widget _activityChip(IconData icon, String value, String label, Color color) {
-    return Container(
+    return SizedBox(
       width: 150,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(value, style: TextStyle(color: color, fontFamily: 'Times', fontSize: 17, fontWeight: FontWeight.bold)),
-                Text(label, style: const TextStyle(color: Colors.white54, fontFamily: 'Times', fontSize: 11)),
+          Row(
+            children: [
+              Icon(icon, color: color, size: 25),
+              const SizedBox(width: 1),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(value, style: TextStyle(color: color, fontFamily: 'Times', fontSize: 17, fontWeight: FontWeight.bold)),
+                    Text(label, style: const TextStyle(color: Colors.white54, fontFamily: 'Times', fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 2.5,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 14, spreadRadius: 1),
               ],
             ),
           ),
         ],
       ),
     );
-  }
+  } 
 
   Widget _buildRecentlyUpdatedRow(MovieProvider provider) {
     return SizedBox(
@@ -170,7 +190,6 @@ class ProfileTab extends StatelessWidget {
     );
   }
   
-
   Widget _buildTopRatedRow(BuildContext context, MovieProvider provider) {
     const imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
     final theme = Theme.of(context);
@@ -192,7 +211,8 @@ class ProfileTab extends StatelessWidget {
             onTap: () =>
                 Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movie.id, mediaType: movie.mediaType))),
             child: Container(
-              width: 120,
+              width: 130,
+              height: 190,
               padding: const EdgeInsets.all(1.5),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(13),
@@ -204,16 +224,17 @@ class ProfileTab extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(11.5),
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
                     movie.posterPath.isEmpty
-                        ? Container(height: 170, width: 120, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
+                        ? Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38))
                         : Image.network(
                             '$imageBaseUrl${movie.posterPath}',
-                            height: 170,
-                            width: 120,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                Container(height: 170, width: 120, color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                                Container(color: Colors.white10, child: const Icon(Icons.movie, color: Colors.white38)),
+                            loadingBuilder: (context, child, progress) =>
+                                progress == null ? child : Container(color: Colors.white10),
                           ),
                     Positioned(
                       top: 6,
@@ -238,7 +259,7 @@ class ProfileTab extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildEmptyHint(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
