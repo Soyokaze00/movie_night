@@ -8,6 +8,8 @@ class ApiService {
   final String? _apiKey = dotenv.env['TMDB_API_KEY'];
   final String _baseUrl = 'https://api.themoviedb.org/3';
 
+  Set<int>? _cachedExcludedKeywordIds;
+
   Uri _buildUrl(String endpoint, {String? extraParams}) {
     if (_apiKey == null) {
       throw Exception('TMDB API Key not found. Make sure it is set in your .env file.');
@@ -17,14 +19,97 @@ class ApiService {
     return Uri.parse(url);
   }
 
+  static const List<String> _blockedTextTerms = [
+    'onlyfans', 'porn star', 'pornstar', 'sex worker', 'prostitute',
+    'stripper', 'erotica', 'softcore', 'sex tape', 'affair', 'seduce',
+    'seduction', 'mistress', 'adultery', 'swapping', 'erotic',
+  ];
+
+  static const int _minVoteCount = 20;
+
+  bool _hasSufficientVotes(dynamic json) {
+    final voteCount = json['vote_count'];
+    if (voteCount is! int) return true; // don't punish missing data we can't read
+    return voteCount >= _minVoteCount;
+  }
+
+  bool _hasBlockedText(dynamic json) {
+    final title = ((json['title'] ?? json['name'] ?? '') as String).toLowerCase();
+    final overview = ((json['overview'] ?? '') as String).toLowerCase();
+    final combined = '$title $overview';
+    return _blockedTextTerms.any((term) => combined.contains(term));
+  }
+
+  List<dynamic> _stripAdult(List<dynamic> results) {
+    return results
+        .where((json) => json is Map && json['adult'] != true && !_hasBlockedText(json) && _hasSufficientVotes(json))
+        .toList();
+  }
+
+  Future<int?> _searchKeywordId(String name) async {
+    final url = _buildUrl('search/keyword', extraParams: 'query=${Uri.encodeQueryComponent(name)}');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final results = (data['results'] as List?) ?? [];
+        final exact = results.firstWhere(
+          (k) => (k['name'] as String).toLowerCase() == name.toLowerCase(),
+          orElse: () => null,
+        );
+        if (exact != null) return exact['id'] as int;
+        if (results.isNotEmpty) return results.first['id'] as int;
+      }
+    } catch (e) {
+      debugPrint('Keyword lookup failed for "$name": $e');
+    }
+    return null;
+  }
+
+  Future<Set<int>> _resolveExcludedKeywordIds() async {
+    if (_cachedExcludedKeywordIds != null) return _cachedExcludedKeywordIds!;
+    final ids = <int>{161919, 198385}; 
+
+    const terms = [
+      'ecchi', 'hentai', 'adult animation',
+      'onlyfans', 'sex worker', 'prostitute', 'pornography',
+      'erotica', 'softcore', 'stripper', 'sex tape', 'nudity',
+    ];
+
+    try {
+      final resolved = await Future.wait(terms.map(_searchKeywordId));
+      for (final id in resolved) {
+        if (id != null) ids.add(id);
+      }
+    } catch (e) {
+      debugPrint('Failed to resolve excluded keywords: $e');
+    }
+    _cachedExcludedKeywordIds = ids;
+    return ids;
+  }
+
+  Future<bool> _hasExcludedKeyword(int tvId, Set<int> excludedIds) async {
+    final url = _buildUrl('tv/$tvId/keywords');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final results = (data['results'] as List?) ?? [];
+        return results.any((k) => excludedIds.contains(k['id']));
+      }
+    } catch (_) {}
+    return false;
+  }
+
   Future<List<Movie>> getTrendingMovies() async {
-    final url = _buildUrl('trending/movie/day');
+    final url = _buildUrl('trending/movie/day', extraParams: 'include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         if (data['results'] != null) {
-          return (data['results'] as List).map((json) => Movie.fromJson(json)).toList();
+          final results = _stripAdult(data['results'] as List);
+          return results.map((json) => Movie.fromJson(json)).toList();
         }
         throw Exception('Trending movies data is null in response.');
       } else {
@@ -38,13 +123,14 @@ class ApiService {
   }
 
   Future<List<Movie>> getPopularMovies() async {
-    final url = _buildUrl('movie/popular');
+    final url = _buildUrl('movie/popular', extraParams: 'include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         if (data['results'] != null) {
-          return (data['results'] as List).map((json) => Movie.fromJson(json)).toList();
+          final results = _stripAdult(data['results'] as List);
+          return results.map((json) => Movie.fromJson(json)).toList();
         }
         throw Exception('Popular movies data is null in response.');
       } else {
@@ -74,16 +160,14 @@ class ApiService {
     }
   }
 
-  // /search/multi returns movies, tv shows, AND people all mixed together,
-  // each tagged with its own media_type - we keep movie/tv and drop people
-  // so anime (tv) titles are actually findable, not just movies.
   Future<List<Movie>> searchMovies(String query) async {
     final url = _buildUrl('search/multi', extraParams: 'query=${Uri.encodeQueryComponent(query)}&include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final results = (data['results'] as List?) ?? [];
+        final rawResults = (data['results'] as List?) ?? [];
+        final results = _stripAdult(rawResults);
         return results
             .where((json) => json['media_type'] == 'movie' || json['media_type'] == 'tv')
             .map((json) => Movie.fromJson(json, mediaType: json['media_type'] as String))
@@ -98,21 +182,28 @@ class ApiService {
     }
   }
 
-  // tv/on_the_air لیست سریال‌های در حال پخش رو می‌ده، بعد سمت کلاینت فیلتر می‌کنیم
-  // برای اونایی که ژانر Animation (16) دارن و کشورشون ژاپنه
   Future<List<Movie>> getAiringAnime() async {
-    final url = _buildUrl('tv/on_the_air');
+    final url = _buildUrl('tv/on_the_air', extraParams: 'include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final results = (data['results'] as List?) ?? [];
-        final anime = results.where((json) {
+        final rawResults = (data['results'] as List?) ?? [];
+        final safeResults = _stripAdult(rawResults);
+        final candidates = safeResults.where((json) {
           final genreIds = (json['genre_ids'] as List?)?.cast<int>() ?? [];
           final origin = (json['origin_country'] as List?)?.cast<String>() ?? [];
           return genreIds.contains(16) && origin.contains('JP');
-        });
-        return anime.map((json) => Movie.fromJson(json, mediaType: 'tv')).toList();
+        }).toList();
+
+        final excludedIds = await _resolveExcludedKeywordIds();
+        final clean = <dynamic>[];
+        await Future.wait(candidates.map((json) async {
+          final flagged = await _hasExcludedKeyword(json['id'] as int, excludedIds);
+          if (!flagged) clean.add(json);
+        }));
+
+        return clean.map((json) => Movie.fromJson(json, mediaType: 'tv')).toList();
       } else {
         throw Exception('Failed to load airing anime: ${response.statusCode}');
       }
@@ -123,12 +214,18 @@ class ApiService {
   }
 
   Future<List<Movie>> getPopularAnime() async {
-    final url = _buildUrl('discover/tv', extraParams: 'with_genres=16&with_origin_country=JP&sort_by=popularity.desc&include_adult=false');
+    final excludedIds = await _resolveExcludedKeywordIds();
+    final url = _buildUrl(
+      'discover/tv',
+      extraParams:
+          'with_genres=16&with_origin_country=JP&sort_by=popularity.desc&include_adult=false&without_keywords=${excludedIds.join(',')}',
+    );
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final results = (data['results'] as List?) ?? [];
+        final rawResults = (data['results'] as List?) ?? [];
+        final results = _stripAdult(rawResults);
         return results.map((json) => Movie.fromJson(json, mediaType: 'tv')).toList();
       } else {
         throw Exception('Failed to load popular anime: ${response.statusCode}');
@@ -139,15 +236,15 @@ class ApiService {
     }
   }
 
-
   Future<List<Movie>> getRecommendations(int id, {String mediaType = 'movie'}) async {
     final endpoint = mediaType == 'tv' ? 'tv/$id/recommendations' : 'movie/$id/recommendations';
-    final url = _buildUrl(endpoint);
+    final url = _buildUrl(endpoint, extraParams: 'include_adult=false');
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final results = (data['results'] as List?) ?? [];
+        final rawResults = (data['results'] as List?) ?? [];
+        final results = _stripAdult(rawResults);
         return results.map((json) => Movie.fromJson(json, mediaType: mediaType)).toList();
       } else {
         throw Exception('Failed to load recommendations: ${response.statusCode}');
@@ -176,14 +273,18 @@ class ApiService {
   }
 
   Future<List<Movie>> discoverByGenre({required String mediaType, int? genreId, int page = 1}) async {
-    final params = StringBuffer('sort_by=popularity.desc&page=$page&include_adult=false');
+    final excludedIds = await _resolveExcludedKeywordIds();
+    final params = StringBuffer('sort_by=popularity.desc&page=$page&include_adult=false&without_keywords=${excludedIds.join(',')}');
     if (genreId != null) params.write('&with_genres=$genreId');
+
+    if (mediaType == 'movie') params.write('&certification_country=GB&certification.lte=12');
     final url = _buildUrl('discover/$mediaType', extraParams: params.toString());
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        final results = (data['results'] as List?) ?? [];
+        final rawResults = (data['results'] as List?) ?? [];
+        final results = _stripAdult(rawResults);
         return results.map((json) => Movie.fromJson(json, mediaType: mediaType)).toList();
       } else {
         throw Exception('Failed to discover: ${response.statusCode}');

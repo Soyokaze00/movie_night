@@ -79,11 +79,6 @@ class MovieProvider with ChangeNotifier {
   List<Movie> get droppedMovies => _byStatus('dropped');
   List<Movie> get planToWatchMovies => _byStatus('planToWatch');
 
-  // ---------- profile stats ----------
-  // Aggregates (counts/sums) read directly from the saved DB rows, so they're
-  // accurate immediately on launch. Card-rendering lists need actual Movie
-  // objects (poster, title), which come from the in-memory registry and are
-  // backfilled by _hydrateLibrary() shortly after launch.
 
   List<Movie> get libraryMovies => _registry.values.where((m) => m.hasLibraryData).toList();
 
@@ -241,15 +236,28 @@ class MovieProvider with ChangeNotifier {
     }
   }
 
-  /// "You May Also Like" for a specific title - actual per-title
-  /// recommendations from TMDB, not just the generic popular list.
-  Future<void> fetchRecommendationsFor(int id, {String mediaType = 'movie'}) async {
+Future<void> fetchRecommendationsFor(int id, {String mediaType = 'movie'}) async {
     _isRecommendationsLoading = true;
     _recommendations = [];
     notifyListeners();
     try {
       final results = await _apiService.getRecommendations(id, mediaType: mediaType);
-      _recommendations = results.map(_register).toList();
+      var recs = results.map(_register).toList();
+
+      if (recs.length < 6) {
+        final movie = _registry[_key(id, mediaType)];
+        final genreId = (movie?.genreIds.isNotEmpty ?? false) ? movie!.genreIds.first : null;
+        if (genreId != null) {
+          try {
+            final extra = await _apiService.discoverByGenre(mediaType: mediaType, genreId: genreId);
+            final existingIds = recs.map((m) => m.id).toSet()..add(id);
+            final supplement = extra.where((m) => !existingIds.contains(m.id)).map(_register).toList();
+            recs = [...recs, ...supplement].take(12).toList();
+          } catch (_) {}
+        }
+      }
+
+      _recommendations = recs;
     } catch (e) {
       debugPrint('Failed to load recommendations: $e');
       _recommendations = [];

@@ -8,6 +8,7 @@ class Movie {
   String releaseDate;
   int? runtime;
   List<String> genres;
+  List<int> genreIds;
   String? director;
   List<String> cast;
   String mediaType; // 'movie' یا 'tv' (انیمه‌ها 'tv' هستن)
@@ -35,6 +36,7 @@ class Movie {
     this.releaseDate = '',
     this.runtime,
     this.genres = const [],
+    this.genreIds = const [],
     this.director,
     this.cast = const [],
     this.mediaType = 'movie',
@@ -50,8 +52,6 @@ class Movie {
     this.updatedAt,
   });
 
-  /// 0.0-1.0 progress bar value. For movies it's just watched/not-watched;
-  /// for tv/anime it's episodesWatched / totalEpisodes.
   double get watchProgress {
     if (mediaType != 'tv') return status == 'completed' ? 1.0 : 0.0;
     if (totalEpisodes == null || totalEpisodes == 0) return 0.0;
@@ -67,7 +67,6 @@ class Movie {
     return h > 0 ? '${h}h ${m}m' : '${m}m';
   }
 
-  // برای movie از 'title'/'release_date' و برای tv از 'name'/'first_air_date' استفاده می‌شه
   factory Movie.fromJson(Map<String, dynamic> json, {String mediaType = 'movie'}) {
     return Movie(
       id: json['id'],
@@ -77,6 +76,7 @@ class Movie {
       overview: json['overview'] ?? '',
       voteAverage: (json['vote_average'] ?? 0.0).toDouble(),
       releaseDate: json['release_date'] ?? json['first_air_date'] ?? '',
+      genreIds: (json['genre_ids'] as List?)?.cast<int>() ?? const [],
       mediaType: mediaType,
     );
   }
@@ -100,7 +100,9 @@ class Movie {
     }
 
     if (json['genres'] != null) {
-      genres = (json['genres'] as List).map((g) => g['name'].toString()).toList();
+      final genreList = json['genres'] as List;
+      genres = genreList.map((g) => g['name'].toString()).toList();
+      genreIds = genreList.map((g) => g['id'] as int).toList();
     }
 
     final credits = json['credits'];
@@ -135,8 +137,6 @@ class Movie {
     };
   }
 
-  /// Applies a saved DB row onto a freshly-fetched Movie (which only has
-  /// TMDB data at this point).
   void applyEntryMap(Map<String, Object?> row) {
     status = row['status'] as String? ?? 'none';
     isFavorite = (row['is_favorite'] as int? ?? 0) == 1;
