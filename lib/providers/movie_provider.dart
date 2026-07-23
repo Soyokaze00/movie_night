@@ -32,8 +32,6 @@ class MovieProvider with ChangeNotifier {
   bool _isSearching = false;
   String? _searchError;
 
-  bool _isLibraryReady = false;
-
   String? _profileName;
   String? _profileAvatar;
   bool _isProfileReady = false;
@@ -61,7 +59,6 @@ class MovieProvider with ChangeNotifier {
   String? get detailError => _detailError;
   List<Movie> get recommendations => _recommendations;
   bool get isRecommendationsLoading => _isRecommendationsLoading;
-  bool get isLibraryReady => _isLibraryReady;
 
   String? get profileName => _profileName;
   String? get profileAvatar => _profileAvatar;
@@ -386,13 +383,6 @@ Future<void> searchMovies(String query) async {
     setEpisodeProgress(id, movie.episodesWatched - 1, mediaType: mediaType);
   }
 
-  void setNotes(int id, String notes, {String mediaType = 'movie'}) {
-    final movie = _registry[_key(id, mediaType)];
-    if (movie == null) return;
-    movie.notes = notes;
-    _saveEntry(movie);
-  }
-
   void incrementRewatch(int id, {String mediaType = 'movie'}) {
     final movie = _registry[_key(id, mediaType)];
     if (movie == null) return;
@@ -422,17 +412,11 @@ Future<void> searchMovies(String query) async {
     } catch (e) {
       debugPrint('Failed to load library data: $e');
     } finally {
-      _isLibraryReady = true;
       notifyListeners();
       unawaited(_hydrateLibrary());
     }
   }
 
-  /// Fetches full Movie objects (poster, title, rating) for saved library
-  /// entries that aren't already cached in this session, so screens like
-  /// Profile have something to render right after launch instead of only
-  /// after the user happens to browse those titles again. Capped so a huge
-  /// library doesn't fire off dozens of requests on every cold start.
   Future<void> _hydrateLibrary() async {
     final sorted = _savedEntries.values.toList()
       ..sort((a, b) => ((b['updated_at'] as String?) ?? '').compareTo((a['updated_at'] as String?) ?? ''));
@@ -469,48 +453,5 @@ Future<void> searchMovies(String query) async {
     _profileName = name;
     _profileAvatar = avatar;
     notifyListeners();
-  }
-
-  Future<List<Map<String, Object?>>> getCustomLists() => _db.getLists();
-
-  Future<int> createCustomList(String name) async {
-    final id = await _db.createList(name);
-    notifyListeners();
-    return id;
-  }
-
-  Future<void> deleteCustomList(int listId) async {
-    await _db.deleteList(listId);
-    notifyListeners();
-  }
-
-  Future<void> addToCustomList(int listId, int mediaId, String mediaType) async {
-    await _db.addItemToList(listId, mediaId, mediaType);
-    notifyListeners();
-  }
-
-  Future<void> removeFromCustomList(int listId, int mediaId, String mediaType) async {
-    await _db.removeItemFromList(listId, mediaId, mediaType);
-    notifyListeners();
-  }
-
-  Future<List<Movie>> getCustomListMovies(int listId) async {
-    final items = await _db.getItemsForList(listId);
-    final movies = <Movie>[];
-    for (final item in items) {
-      final id = item['media_id'] as int;
-      final mediaType = item['media_type'] as String;
-      final cached = getCachedMovie(id, mediaType: mediaType);
-      if (cached != null) {
-        movies.add(cached);
-        continue;
-      }
-      try {
-        movies.add(await fetchMovieDetail(id, mediaType: mediaType));
-      } catch (_) {
-        // skip titles that fail to fetch (e.g. offline)
-      }
-    }
-    return movies;
   }
 }

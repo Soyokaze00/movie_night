@@ -23,7 +23,6 @@ class Movie {
   int rewatchCount;
   String? startDate; // ISO8601
   String? finishDate; // ISO8601
-  String? notes;
   String? updatedAt; // ISO8601, set whenever this movie's library entry is saved
 
   Movie({
@@ -48,7 +47,6 @@ class Movie {
     this.rewatchCount = 0,
     this.startDate,
     this.finishDate,
-    this.notes,
     this.updatedAt,
   });
 
@@ -132,7 +130,6 @@ class Movie {
       'rewatch_count': rewatchCount,
       'start_date': startDate,
       'finish_date': finishDate,
-      'notes': notes,
       'updated_at': updatedAt,
     };
   }
@@ -146,10 +143,9 @@ class Movie {
     rewatchCount = row['rewatch_count'] as int? ?? 0;
     startDate = row['start_date'] as String?;
     finishDate = row['finish_date'] as String?;
-    notes = row['notes'] as String?;
     updatedAt = row['updated_at'] as String?;
   }
 
   bool get hasLibraryData =>
-      isFavorite || status != 'none' || userScore != null || episodesWatched > 0 || (notes?.isNotEmpty ?? false);
+      isFavorite || status != 'none' || userScore != null || episodesWatched > 0;
 }
