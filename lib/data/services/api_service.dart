@@ -20,18 +20,10 @@ class ApiService {
   }
 
   static const List<String> _blockedTextTerms = [
-    'onlyfans', 'porn star', 'pornstar', 'sex worker', 'prostitute',
+    'onlyfans', 'sex', 'porn star', 'pornstar', 'sex worker', 'prostitute',
     'stripper', 'erotica', 'softcore', 'sex tape', 'affair', 'seduce',
     'seduction', 'mistress', 'adultery', 'swapping', 'erotic',
   ];
-
-  static const int _minVoteCount = 20;
-
-  bool _hasSufficientVotes(dynamic json) {
-    final voteCount = json['vote_count'];
-    if (voteCount is! int) return true; // don't punish missing data we can't read
-    return voteCount >= _minVoteCount;
-  }
 
   bool _hasBlockedText(dynamic json) {
     final title = ((json['title'] ?? json['name'] ?? '') as String).toLowerCase();
@@ -40,10 +32,13 @@ class ApiService {
     return _blockedTextTerms.any((term) => combined.contains(term));
   }
 
+  bool _isBlockedQuery(String query) {
+    final lower = query.toLowerCase();
+    return _blockedTextTerms.any((term) => lower.contains(term));
+  }
+
   List<dynamic> _stripAdult(List<dynamic> results) {
-    return results
-        .where((json) => json is Map && json['adult'] != true && !_hasBlockedText(json) && _hasSufficientVotes(json))
-        .toList();
+    return results.where((json) => json is Map && json['adult'] != true && !_hasBlockedText(json)).toList();
   }
 
   Future<int?> _searchKeywordId(String name) async {
@@ -68,7 +63,7 @@ class ApiService {
 
   Future<Set<int>> _resolveExcludedKeywordIds() async {
     if (_cachedExcludedKeywordIds != null) return _cachedExcludedKeywordIds!;
-    final ids = <int>{161919, 198385}; 
+    final ids = <int>{161919, 198385};
 
     const terms = [
       'ecchi', 'hentai', 'adult animation',
@@ -161,6 +156,7 @@ class ApiService {
   }
 
   Future<List<Movie>> searchMovies(String query) async {
+    if (_isBlockedQuery(query)) return [];
     final url = _buildUrl('search/multi', extraParams: 'query=${Uri.encodeQueryComponent(query)}&include_adult=false');
     try {
       final response = await http.get(url);
