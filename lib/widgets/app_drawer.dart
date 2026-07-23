@@ -100,78 +100,84 @@ class AppDrawer extends StatelessWidget {
                 // Header with gradient background + glowing avatar
                 Container(
                   margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(1.5),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.28),
-                        theme.colorScheme.secondary.withValues(alpha: 0.14),
-                        Colors.black,
+                        theme.colorScheme.secondary,
+                        theme.colorScheme.primary,
+                        const Color.fromARGB(255, 255, 214, 64),
                       ],
                     ),
-                    border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.35)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          children: [
-                            const TextSpan(
-                              text: 'Movie',
-                              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Times'),
-                            ),
-                            TextSpan(
-                              text: 'Night',
-                              style: TextStyle(color: theme.colorScheme.secondary, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Times'),
-                            ),
-                          ],
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(18.5)),
+                      color: Color(0xFF0D0D0D),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: 'Movie',
+                                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Times'),
+                              ),
+                              TextSpan(
+                                text: 'Night',
+                                style: TextStyle(color: theme.colorScheme.secondary, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'Times'),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
-                        },
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [theme.colorScheme.secondary, theme.colorScheme.primary, Colors.orangeAccent],
+                        const SizedBox(height: 16),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileSetupScreen()));
+                          },
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [theme.colorScheme.secondary, theme.colorScheme.primary, const Color.fromARGB(255, 255, 214, 64)],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.5), blurRadius: 12, spreadRadius: 1),
+                                  ],
                                 ),
-                                boxShadow: [
-                                  BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.5), blurRadius: 12, spreadRadius: 1),
-                                ],
+                                child: CircleAvatar(
+                                  radius: 26,
+                                  backgroundColor: const Color(0xFF1E1E1E),
+                                  child: provider.profileAvatar != null
+                                      ? Text(provider.profileAvatar!, style: const TextStyle(fontSize: 24))
+                                      : const Icon(Icons.person, color: Colors.white, size: 24),
+                                ),
                               ),
-                              child: CircleAvatar(
-                                radius: 26,
-                                backgroundColor: const Color(0xFF1E1E1E),
-                                child: provider.profileAvatar != null
-                                    ? Text(provider.profileAvatar!, style: const TextStyle(fontSize: 24))
-                                    : const Icon(Icons.person, color: Colors.white, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  provider.profileName ?? "Set up profile",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                provider.profileName ?? "Set up profile",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Colors.white, fontFamily: 'Times', fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Icon(Icons.chevron_right, color: theme.colorScheme.secondary.withValues(alpha: 0.8), size: 20),
-                          ],
+                              Icon(Icons.chevron_right, color: theme.colorScheme.secondary.withValues(alpha: 0.8), size: 20),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),

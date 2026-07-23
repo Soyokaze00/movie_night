@@ -71,7 +71,7 @@ class MovieMiniCard extends StatelessWidget {
                           style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'Times', fontWeight: FontWeight.bold, height: 1.15)),
                       const SizedBox(height: 4),
                       Row(children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 13),
+                        const Icon(Icons.star, color: Color.fromARGB(255, 255, 202, 43), size: 13),
                         const SizedBox(width: 3),
                         Text(movie.voteAverage.toStringAsFixed(1), style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'Times')),
                       ]),
