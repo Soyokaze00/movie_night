@@ -164,7 +164,7 @@ class _HomeTabState extends State<HomeTab> {
             colors: [theme.colorScheme.secondary, theme.colorScheme.primary, Colors.orangeAccent],
           ),
           boxShadow: [
-            BoxShadow(color: theme.colorScheme.secondary.withOpacity(0.3), blurRadius: 16, spreadRadius: 1),
+            BoxShadow(color: theme.colorScheme.secondary.withValues(alpha: 0.3), blurRadius: 16, spreadRadius: 1),
           ],
         ),
         child: ClipRRect(
@@ -184,7 +184,7 @@ class _HomeTabState extends State<HomeTab> {
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.92), Colors.black.withOpacity(0.4), Colors.transparent],
+                    colors: [Colors.black.withValues(alpha: 0.92), Colors.black.withValues(alpha: 0.4), Colors.transparent],
                     stops: const [0.0, 0.45, 1.0],
                   ),
                 ),
@@ -196,9 +196,9 @@ class _HomeTabState extends State<HomeTab> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: theme.colorScheme.secondary.withOpacity(0.6)),
+                        border: Border.all(color: theme.colorScheme.secondary.withValues(alpha: 0.6)),
                       ),
                       child: Text(badge, style: TextStyle(color: theme.colorScheme.secondary, fontSize: 11, fontFamily: 'Times', fontWeight: FontWeight.bold)),
                     ),
@@ -294,11 +294,11 @@ class _HomeTabState extends State<HomeTab> {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MovieListScreen(type: type))),
       child: Container(
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.55)),
+          border: Border.all(color: color.withValues(alpha: 0.55)),
           boxShadow: [
-            BoxShadow(color: color.withOpacity(0.25), blurRadius: 10),
+            BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 10),
           ],
         ),
         child: Row(
